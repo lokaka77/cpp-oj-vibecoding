@@ -14,6 +14,7 @@
 | cpp-httplib | 后端 HTTP 服务 | 必需 |
 | nlohmann/json | 后端 JSON 请求与响应处理 | 必需 |
 | yaml-cpp | 解析 config.yaml 配置 | 必需 |
+| GoogleTest | C++ 单元测试框架 | 必需 |
 | libsodium | 用户密码安全哈希 | 必需 |
 | MySQL Server | 数据持久化 | 必需 |
 | MySQL 客户端库 | 后端连接 MySQL | 必需 |
@@ -62,7 +63,7 @@ cd C:\dev\vcpkg
 
 ```powershell
 cd C:\dev\vcpkg
-.\vcpkg install cpp-httplib:x64-mingw-static nlohmann-json:x64-mingw-static yaml-cpp:x64-mingw-static libsodium:x64-mingw-static libmariadb:x64-mingw-static
+.\vcpkg install cpp-httplib:x64-mingw-static nlohmann-json:x64-mingw-static yaml-cpp:x64-mingw-static gtest:x64-mingw-static libsodium:x64-mingw-static libmariadb:x64-mingw-static
 ```
 
 说明：
@@ -70,6 +71,7 @@ cd C:\dev\vcpkg
 - `cpp-httplib` 是文档指定的 HTTP 服务库。
 - `nlohmann/json` 用于统一 JSON 响应。
 - `yaml-cpp` 用于解析 `config.yaml`。
+- `gtest` 用于单元测试。
 - `libsodium` 提供 Argon2 等安全密码哈希能力。
 - `libmariadb` 使用 MySQL 协议连接 MySQL 服务端，服务端仍安装 MySQL。
 
@@ -155,6 +157,7 @@ cd C:\dev\vcpkg
 - `cpp-httplib`
 - `nlohmann-json`
 - `yaml-cpp`
+- `gtest`
 - `libsodium`
 - `libmariadb`
 

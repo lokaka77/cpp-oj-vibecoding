@@ -11,6 +11,8 @@ ConfigManager& ConfigManager::instance() {
 
 bool ConfigManager::load(const std::string& path) {
     try {
+        config_ = ServerConfig{};
+
         YAML::Node root = YAML::LoadFile(path);
 
         YAML::Node server = root["server"];
