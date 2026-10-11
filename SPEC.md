@@ -227,39 +227,56 @@
 
 ### 9.1 users
 
-- `id`：主键
-- `username`：唯一用户名
-- `password_hash`：密码哈希
-- `role`：用户角色，`user` 或 `admin`
-- `created_at`：创建时间
+- `id`：`BIGINT UNSIGNED AUTO_INCREMENT`，主键
+- `username`：`VARCHAR(50) NOT NULL`，唯一用户名
+- `password_hash`：`VARCHAR(255) NOT NULL`，密码安全哈希
+- `role`：`ENUM('user', 'admin') NOT NULL DEFAULT 'user'`
+- `created_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- 唯一键：`UNIQUE KEY uk_users_username (username)`
 
 ### 9.2 problems
 
-- `id`：主键
-- `title`：题目标题
-- `description`：题目描述
-- `created_at`：创建时间
-- `updated_at`：更新时间
+- `id`：`BIGINT UNSIGNED AUTO_INCREMENT`，主键
+- `title`：`VARCHAR(200) NOT NULL`
+- `description`：`MEDIUMTEXT NOT NULL`
+- `created_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `updated_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
 
 ### 9.3 test_cases
 
-- `id`：主键
-- `problem_id`：所属题目
-- `input`：输入数据或输入文件路径
-- `expected_output`：期望输出或输出文件路径
-- `is_sample`：是否普通用户可见
-- `order_index`：测试点顺序
+- `id`：`BIGINT UNSIGNED AUTO_INCREMENT`，主键
+- `problem_id`：`BIGINT UNSIGNED NOT NULL`，所属题目
+- `input_data`：`MEDIUMTEXT NOT NULL`，测试点标准输入内容
+- `expected_output_data`：`MEDIUMTEXT NOT NULL`，测试点标准输出内容
+- `is_sample`：`TINYINT(1) NOT NULL DEFAULT 0`，是否普通用户可见
+- `order_index`：`TINYINT UNSIGNED NOT NULL`，测试点顺序
+- 唯一键：`UNIQUE KEY uk_test_cases_problem_order (problem_id, order_index)`
+- 索引：`KEY idx_test_cases_problem_id (problem_id)`
+- 外键：`FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE`
 
 ### 9.4 submissions
 
-- `id`：主键
-- `user_id`：提交用户
-- `problem_id`：所属题目
-- `code`：用户提交的 C++ 代码
-- `status`：`pending`、`judging`、`done`
-- `verdict`：`AC`、`WA`、`TLE`、`RE`、`CE`
-- `created_at`：提交时间
-- `finished_at`：完成时间
+- `id`：`BIGINT UNSIGNED AUTO_INCREMENT`，主键
+- `user_id`：`BIGINT UNSIGNED NOT NULL`，提交用户
+- `problem_id`：`BIGINT UNSIGNED NOT NULL`，所属题目
+- `code`：`MEDIUMTEXT NOT NULL`，用户提交的 C++ 代码
+- `status`：`ENUM('pending', 'judging', 'done') NOT NULL DEFAULT 'pending'`
+- `verdict`：`ENUM('AC', 'WA', 'TLE', 'RE', 'CE') NULL`，判题完成后写入
+- `created_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `finished_at`：`DATETIME NULL`
+- 索引：`KEY idx_submissions_status (status)`
+- 索引：`KEY idx_submissions_problem_id (problem_id)`
+- 索引：`KEY idx_submissions_user_id (user_id)`
+- 外键：`FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
+- 外键：`FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE`
+
+### 9.5 范式与约束说明
+
+- 每张表的字段都只保存单个原子值，不使用逗号分隔列表、JSON 数组或重复列。
+- 多个测试点通过 `test_cases` 独立表存储，不重复放在 `problems` 表中，符合第一范式。
+- `test_cases` 不再让同一字段同时表示“文本内容”和“文件路径”，避免一个字段承担两种语义。
+- `verdict` 仅在判题完成后写入；进行中或等待中的提交保持 `NULL`，避免用空字符串充当缺失值。
+- 测试点顺序通过 `problem_id + order_index` 唯一约束保证。
 
 ## 10. API 边界
 
