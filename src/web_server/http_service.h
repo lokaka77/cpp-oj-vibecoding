@@ -1,5 +1,5 @@
 #pragma once
 
-#include <string>
+#include "config.h"
 
-void run_http_server(const std::string& web_root, int port = 8080);
+void run_http_server(const ServerConfig& config);
