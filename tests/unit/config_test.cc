@@ -84,6 +84,27 @@ TEST(ConfigManagerTest, LoadsAPartialConfigAndKeepsDefaults) {
     EXPECT_EQ(config.log_level, "info");
 }
 
+TEST(ConfigManagerTest, LoadsDatabaseConfig) {
+    TempConfigFile file(
+        "server: {}\n"
+        "database:\n"
+        "  host: 10.0.0.5\n"
+        "  port: 3307\n"
+        "  user: oj_app\n"
+        "  password: secret\n"
+        "  name: oj_test\n");
+
+    ConfigManager& manager = ConfigManager::instance();
+    ASSERT_TRUE(manager.load(file.path()));
+
+    const DatabaseConfig& database = manager.config().database;
+    EXPECT_EQ(database.host, "10.0.0.5");
+    EXPECT_EQ(database.port, 3307);
+    EXPECT_EQ(database.user, "oj_app");
+    EXPECT_EQ(database.password, "secret");
+    EXPECT_EQ(database.name, "oj_test");
+}
+
 TEST(ConfigManagerTest, ReloadResetsPreviousValues) {
     {
         TempConfigFile file(

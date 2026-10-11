@@ -3,5 +3,12 @@ server:
   port: 8080
   web_root: ./web
 
+database:
+  host: 127.0.0.1
+  port: 3306
+  user: oj_app
+  password: "oj_app_pass"
+  name: oj
+
 logging:
   level: info

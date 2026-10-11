@@ -10,9 +10,13 @@ find_package(httplib CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
+find_package(unofficial-libmariadb CONFIG REQUIRED)
+find_package(unofficial-sodium CONFIG REQUIRED)
 
 add_library(oj_common STATIC
     src/common/config.cc
+    src/common/database.cc
+    src/common/password.cc
 )
 
 target_include_directories(oj_common PUBLIC
@@ -22,9 +26,13 @@ target_include_directories(oj_common PUBLIC
 
 target_link_libraries(oj_common PUBLIC
     yaml-cpp::yaml-cpp
+    unofficial::libmariadb
+    unofficial-sodium::sodium
 )
 
 add_executable(web_server
+    src/web_server/auth_service.cc
+    src/web_server/session.cc
     src/web_server/main.cpp
 )
 
@@ -46,9 +54,13 @@ enable_testing()
 add_executable(oj_tests
     tests/unit/config_test.cc
     tests/unit/logging_test.cc
+    tests/unit/password_test.cc
+    tests/unit/session_test.cc
+    src/web_server/session.cc
 )
 
 target_include_directories(oj_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/web_server
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

@@ -73,3 +73,11 @@ VALUES (
     'admin'
 )
 ON DUPLICATE KEY UPDATE username = username;
+
+CREATE USER IF NOT EXISTS 'oj_app'@'localhost'
+    IDENTIFIED WITH mysql_native_password BY 'oj_app_pass';
+CREATE USER IF NOT EXISTS 'oj_app'@'127.0.0.1'
+    IDENTIFIED WITH mysql_native_password BY 'oj_app_pass';
+GRANT ALL PRIVILEGES ON oj.* TO 'oj_app'@'localhost';
+GRANT ALL PRIVILEGES ON oj.* TO 'oj_app'@'127.0.0.1';
+FLUSH PRIVILEGES;

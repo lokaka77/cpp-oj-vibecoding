@@ -33,6 +33,26 @@ bool ConfigManager::load(const std::string& path) {
             config_.web_root = server["web_root"].as<std::string>();
         }
 
+        YAML::Node database = root["database"];
+        if (database) {
+            if (database["host"]) {
+                config_.database.host = database["host"].as<std::string>();
+            }
+            if (database["port"]) {
+                config_.database.port = database["port"].as<int>();
+            }
+            if (database["user"]) {
+                config_.database.user = database["user"].as<std::string>();
+            }
+            if (database["password"]) {
+                config_.database.password =
+                    database["password"].as<std::string>();
+            }
+            if (database["name"]) {
+                config_.database.name = database["name"].as<std::string>();
+            }
+        }
+
         YAML::Node logging = root["logging"];
         if (logging && logging["level"]) {
             config_.log_level = logging["level"].as<std::string>();

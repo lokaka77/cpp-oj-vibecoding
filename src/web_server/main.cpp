@@ -1,5 +1,8 @@
 #include "http_service.h"
+#include "auth_service.h"
+#include "database.h"
 #include "logging.h"
+#include "session.h"
 
 #include <httplib.h>
 
@@ -7,6 +10,12 @@
 #include <stdexcept>
 
 void run_http_server(const ServerConfig& config) {
+    Database database;
+    if (!database.connect(config.database)) {
+        throw std::runtime_error("Failed to connect to MySQL");
+    }
+
+    SessionManager sessions;
     httplib::Server server;
 
     server.set_mount_point("/", config.web_root);
@@ -20,6 +29,8 @@ void run_http_server(const ServerConfig& config) {
     server.Get("/api/health", [](const httplib::Request&, httplib::Response& res) {
         res.set_content("{\"status\":\"ok\"}", "application/json");
     });
+
+    register_auth_routes(server, database, sessions);
 
     log_info("HTTP server listening on " + config.listen_address + ":" +
              std::to_string(config.port));
