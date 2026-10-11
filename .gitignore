@@ -1,2 +1,5 @@
 # Local development toolchain and downloaded artifacts
 .tools/
+
+# CMake build output
+build/
