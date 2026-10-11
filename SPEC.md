@@ -223,6 +223,74 @@
 - Web 服务通过数据库中的提交任务状态与判题服务协作。
 - 判题服务使用固定数量的 worker 消费待判题任务。
 
+### 8.4 项目目录结构
+
+```text
+cppojvibecoding/
+├── .gitignore
+├── README.md
+├── SPEC.md
+├── DEPENDENCIES.md
+├── CMakeLists.txt
+├── src/
+│   ├── common/
+│   │   ├── config.h
+│   │   ├── database.h
+│   │   ├── json_utils.h
+│   │   └── logging.h
+│   ├── web_server/
+│   │   ├── main.cpp
+│   │   ├── http_service.h
+│   │   ├── auth_service.h
+│   │   ├── problem_service.h
+│   │   └── admin_service.h
+│   └── judge/
+│       ├── main.cpp
+│       ├── judge_worker.h
+│       ├── compiler.h
+│       ├── runner.h
+│       └── process_guard.h
+├── include/
+│   └── oj/
+│       ├── api.h
+│       ├── models.h
+│       └── verdict.h
+├── web/
+│   ├── index.html
+│   ├── login.html
+│   ├── problems.html
+│   ├── problem.html
+│   ├── admin.html
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── api.js
+│       ├── auth.js
+│       ├── problems.js
+│       ├── problem.js
+│       └── admin.js
+├── scripts/
+│   ├── install_dependencies.ps1
+│   └── init_db.sql
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── build/
+└── .tools/
+```
+
+说明：
+
+- `src/common`：数据库访问、配置、JSON 和日志等公共模块。
+- `src/web_server`：HTTP 服务入口和认证、题目、管理端 API。
+- `src/judge`：独立判题服务，负责编译、运行、资源限制和结果回写。
+- `include/oj`：供各模块共享的数据模型、接口定义和判题结论定义。
+- `web`：原生 HTML、CSS、JavaScript 前端页面。
+- `scripts`：依赖安装和数据库初始化脚本。
+- `tests`：单元测试与集成测试。
+- `build`：CMake 生成的构建产物，应加入 `.gitignore`。
+- `.tools`：本地便携工具链，已加入 `.gitignore`。
+
 ## 9. 数据模型
 
 ### 9.1 users
