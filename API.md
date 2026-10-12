@@ -681,6 +681,78 @@ verdict 说明：
 | `404` | `PROBLEM_NOT_FOUND` | 题目不存在 |
 | `500` | `INTERNAL_ERROR` | 测试用例导入失败 |
 
+## 5.1 管理员用户接口
+
+### `GET /api/admin/users`
+
+作用：获取系统中的用户列表。
+
+访问权限：管理员。
+
+成功响应 `200`：
+
+```json
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "role": "admin",
+      "created_at": "2026-10-12 12:00:00"
+    },
+    {
+      "id": 16,
+      "username": "lokaka",
+      "role": "user",
+      "created_at": "2026-10-12 13:00:00"
+    }
+  ]
+}
+```
+
+可能的错误：
+
+| 状态码 | code | 说明 |
+| --- | --- | --- |
+| `401` | `NOT_AUTHENTICATED` | 未登录 |
+| `403` | `ADMIN_REQUIRED` | 不是管理员 |
+| `500` | `INTERNAL_ERROR` | 用户列表读取失败 |
+
+### `DELETE /api/admin/users/{id}`
+
+作用：删除普通用户账号。
+
+访问权限：管理员。
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | integer | 用户 ID |
+
+成功响应 `200`：
+
+```json
+{
+  "status": "ok"
+}
+```
+
+说明：
+
+- 管理员账号受保护，不允许通过该接口删除。
+- 删除普通用户时，该用户的提交记录会通过外键级联删除。
+
+可能的错误：
+
+| 状态码 | code | 说明 |
+| --- | --- | --- |
+| `400` | `ADMIN_ACCOUNT_PROTECTED` | 目标账号是管理员 |
+| `401` | `NOT_AUTHENTICATED` | 未登录 |
+| `403` | `ADMIN_REQUIRED` | 不是管理员 |
+| `404` | `USER_NOT_FOUND` | 用户不存在 |
+| `500` | `INTERNAL_ERROR` | 删除失败 |
+
 ## 6. 判题限制与流程
 
 ### 6.1 限制

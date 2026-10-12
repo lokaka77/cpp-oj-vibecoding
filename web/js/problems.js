@@ -77,11 +77,19 @@
 
             const solved = state.solvedIds.has(problem.id);
             if (solved) {
-                const badge = document.createElement("span");
-                badge.className = "solved-badge";
-                badge.textContent = "AC";
-                badge.setAttribute("aria-label", "已通过");
-                title.appendChild(badge);
+                const egg = document.createElement("span");
+                egg.className = "solved-egg";
+                egg.setAttribute("role", "img");
+                egg.setAttribute("aria-label", "已通过");
+                egg.innerHTML =
+                    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                    '<path d="M9 4.6C9.8 3.5 10.8 3 12 3s2.2.5 3 1.6' +
+                    'c1.6 2.2 2.5 5.3 2.5 8.4 0 5-2.4 8.5-5.5 8.5' +
+                    'S6.5 18 6.5 13c0-3.1.9-6.2 2.5-8.4Z"></path>' +
+                    '<path class="egg-shine" d="M9.6 8.4' +
+                    'c-.7 1.4-1.1 3-1.1 4.7"></path>' +
+                    '</svg>';
+                title.appendChild(egg);
             }
 
             const status = document.createElement("span");

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeHunter - 用户管理</title>
+    <meta name="theme-color" content="#070a0f">
+    <link rel="stylesheet" href="./css/style.css?v=3">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1118'/%3E%3Cpath d='M20 44 32 20l12 24' stroke='%2326d0ce' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body class="app-page">
+    <canvas id="tech-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="app-brand" href="./problems.html" aria-label="CodeHunter 首页">
+                <span class="brand-mark brand-mark-small" aria-hidden="true">C++</span>
+                <span class="app-brand-name">CodeHunter</span>
+            </a>
+
+            <nav class="app-nav" aria-label="主导航">
+                <a class="app-nav-link" href="./problems.html">题库</a>
+                <a class="app-nav-link" href="./admin.html">管理</a>
+                <a class="app-nav-link is-active" href="./admin-users.html">用户</a>
+            </nav>
+
+            <div class="app-user">
+                <span id="user-role" class="role-badge" hidden></span>
+                <span id="user-name" class="user-name">加载中</span>
+                <button id="logout-button" class="ghost-button" type="button">
+                    退出
+                </button>
+            </div>
+        </header>
+
+        <main class="admin-page">
+            <header class="page-heading">
+                <div>
+                    <p class="eyebrow">USER DIRECTORY</p>
+                    <h1>用户管理</h1>
+                </div>
+                <p id="user-count" class="problem-count">共 0 个账号</p>
+            </header>
+
+            <section class="toolbar" aria-label="用户筛选">
+                <label class="search-box" for="user-search">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6"></circle>
+                        <path d="m16 16 4 4"></path>
+                    </svg>
+                    <input id="user-search"
+                           type="search"
+                           placeholder="搜索用户名"
+                           autocomplete="off">
+                </label>
+            </section>
+
+            <section class="problem-panel" aria-live="polite">
+                <div id="user-loading" class="loading-state">
+                    <div class="skeleton-row"></div>
+                    <div class="skeleton-row"></div>
+                    <div class="skeleton-row"></div>
+                </div>
+
+                <div id="user-list" class="user-list" hidden>
+                    <div class="user-list-header" aria-hidden="true">
+                        <span>编号</span>
+                        <span>用户名</span>
+                        <span>角色</span>
+                        <span>创建时间</span>
+                        <span>操作</span>
+                    </div>
+                    <div id="user-items"></div>
+                </div>
+
+                <div id="user-empty" class="state-message" hidden>
+                    <p>暂无用户</p>
+                </div>
+
+                <div id="user-error" class="state-message state-message-error" hidden>
+                    <p id="user-error-message">用户加载失败</p>
+                    <button id="user-retry" class="ghost-button" type="button">
+                        重新加载
+                    </button>
+                </div>
+            </section>
+
+            <p id="user-status"
+               class="form-status admin-status"
+               role="status"
+               aria-live="polite"></p>
+        </main>
+    </div>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+        <form method="dialog">
+            <h2>确认删除用户</h2>
+            <p id="confirm-message">删除后无法恢复。</p>
+            <div class="confirm-actions">
+                <button class="ghost-button" value="cancel">取消</button>
+                <button id="confirm-delete-button"
+                        class="danger-button"
+                        value="confirm">
+                    删除
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="./js/api.js?v=3" defer></script>
+    <script src="./js/tech-background.js?v=3" defer></script>
+    <script src="./js/admin-users.js?v=3" defer></script>
+</body>
+</html>

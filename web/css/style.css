@@ -745,16 +745,42 @@ a:focus-visible {
     background: rgba(242, 184, 75, 0.1);
 }
 
-.solved-badge {
+.solved-egg {
     flex-shrink: 0;
-    padding: 3px 7px;
-    border: 1px solid rgba(242, 184, 75, 0.55);
-    border-radius: 4px;
-    background: rgba(242, 184, 75, 0.14);
-    color: var(--warning);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    animation: eggGlow 2.4s ease-in-out infinite;
+}
+
+.solved-egg svg {
+    width: 100%;
+    height: 100%;
+    fill: var(--warning);
+    stroke: #ffd77a;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+}
+
+.solved-egg .egg-shine {
+    fill: none;
+    stroke: #fff1bd;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    opacity: 0.9;
+}
+
+@keyframes eggGlow {
+    0%,
+    100% {
+        filter: drop-shadow(0 0 5px rgba(242, 184, 75, 0.3));
+        transform: translateY(0);
+    }
+    50% {
+        filter: drop-shadow(0 0 9px rgba(242, 184, 75, 0.62));
+        transform: translateY(-1px);
+    }
 }
 
 .problem-action {
@@ -1573,5 +1599,127 @@ a:focus-visible {
     .testcase-row-header {
         align-items: flex-start;
         flex-direction: column;
+    }
+}
+
+/* User directory */
+
+.user-list-header,
+.user-row {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr) 110px 180px 100px;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-list-header {
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-input);
+    color: var(--muted-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.user-row {
+    min-height: 68px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background 160ms ease;
+}
+
+.user-row:last-child {
+    border-bottom: 0;
+}
+
+.user-row:hover {
+    background: var(--surface-raised);
+}
+
+.user-row-name {
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-role-badge {
+    justify-self: start;
+    padding: 4px 8px;
+    border: 1px solid rgba(38, 208, 206, 0.42);
+    border-radius: 4px;
+    color: var(--accent);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.user-role-badge.is-admin {
+    border-color: rgba(242, 184, 75, 0.48);
+    color: var(--warning);
+}
+
+.user-created-at {
+    color: var(--muted-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.user-row-action {
+    justify-self: start;
+}
+
+.protected-label {
+    color: var(--muted-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.danger-button.slim {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+@media (max-width: 900px) {
+    .user-list-header {
+        display: none;
+    }
+
+    .user-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "id role"
+            "name name"
+            "created created"
+            "action action";
+        gap: 10px 12px;
+        padding: 18px;
+    }
+
+    .user-row > .problem-id {
+        grid-area: id;
+    }
+
+    .user-row-name {
+        grid-area: name;
+    }
+
+    .user-role-badge {
+        grid-area: role;
+    }
+
+    .user-created-at {
+        grid-area: created;
+    }
+
+    .user-row-action {
+        grid-area: action;
+        justify-self: stretch;
+    }
+
+    .user-row-action .danger-button {
+        width: 100%;
     }
 }

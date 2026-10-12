@@ -247,3 +247,36 @@ TEST_F(DatabaseIntegrationTest, ListsSolvedProblemIdsForUser) {
     EXPECT_NE(std::find(solved_ids.begin(), solved_ids.end(), problem_id),
               solved_ids.end());
 }
+
+TEST_F(DatabaseIntegrationTest, ListsAndDeletesRegularUser) {
+    const std::string username = "it_delete_" + unique_suffix();
+    defer_cleanup("DELETE FROM users WHERE username='" + username + "'");
+
+    ASSERT_TRUE(database_.insert_user(username, "hash", "user"));
+
+    AuthUser user;
+    ASSERT_TRUE(database_.find_user_by_username(username, user));
+
+    std::vector<UserSummary> users;
+    ASSERT_TRUE(database_.list_users(users));
+
+    bool found = false;
+    for (const UserSummary& summary : users) {
+        if (summary.id == user.id) {
+            EXPECT_EQ(summary.username, username);
+            EXPECT_EQ(summary.role, "user");
+            EXPECT_FALSE(summary.created_at.empty());
+            found = true;
+        }
+    }
+    EXPECT_TRUE(found);
+
+    ASSERT_TRUE(database_.delete_user(user.id));
+
+    AuthUser deleted;
+    EXPECT_FALSE(database_.find_user_by_id(user.id, deleted));
+}
+
+TEST_F(DatabaseIntegrationTest, ProtectsAdminAccountFromDeletion) {
+    EXPECT_FALSE(database_.delete_user(1));
+}

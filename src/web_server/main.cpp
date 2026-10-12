@@ -38,6 +38,7 @@ void run_http_server(const ServerConfig& config) {
 
     register_auth_routes(server, database, sessions);
     register_admin_problem_routes(server, database, sessions);
+    register_admin_user_routes(server, database, sessions);
     register_problem_routes(
         server, database, sessions, config.judge, rate_limiter);
 

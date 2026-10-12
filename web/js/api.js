@@ -133,6 +133,15 @@
                     body: JSON.stringify({ test_cases: testCases })
                 }
             );
+        },
+        adminListUsers: function () {
+            return request("/api/admin/users");
+        },
+        adminDeleteUser: function (userId) {
+            return request(
+                "/api/admin/users/" + encodeURIComponent(userId),
+                { method: "DELETE" }
+            );
         }
     };
 })();

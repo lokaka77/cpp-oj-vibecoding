@@ -60,6 +60,8 @@ public:
                                std::string& verdict);
     bool list_solved_problem_ids(std::uint64_t user_id,
                                  std::vector<std::uint64_t>& problem_ids);
+    bool list_users(std::vector<UserSummary>& users);
+    bool delete_user(std::uint64_t user_id);
 
 private:
     void* mysql_ = nullptr;

@@ -219,3 +219,61 @@ void register_admin_problem_routes(httplib::Server& server,
                    {"count", static_cast<int>(test_cases.size())}});
     });
 }
+
+void register_admin_user_routes(httplib::Server& server,
+                                Database& database,
+                                SessionManager& sessions) {
+    server.Get("/api/admin/users",
+               [&](const httplib::Request& request,
+                   httplib::Response& response) {
+        if (!require_admin_request(request, response, database, sessions)) {
+            return;
+        }
+
+        std::vector<UserSummary> users;
+        if (!database.list_users(users)) {
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load users");
+            return;
+        }
+
+        nlohmann::json items = nlohmann::json::array();
+        for (const UserSummary& user : users) {
+            items.push_back({{"id", user.id},
+                             {"username", user.username},
+                             {"role", user.role},
+                             {"created_at", user.created_at}});
+        }
+
+        send_json(response, 200, {{"users", items}});
+    });
+
+    server.Delete(R"(/api/admin/users/(\d+))",
+                  [&](const httplib::Request& request,
+                      httplib::Response& response) {
+        if (!require_admin_request(request, response, database, sessions)) {
+            return;
+        }
+
+        std::uint64_t user_id = std::stoull(request.matches[1].str());
+        AuthUser target;
+        if (!database.find_user_by_id(user_id, target)) {
+            send_error(response, 404, "USER_NOT_FOUND", "user not found");
+            return;
+        }
+
+        if (target.role == "admin") {
+            send_error(response, 400, "ADMIN_ACCOUNT_PROTECTED",
+                       "admin accounts cannot be deleted");
+            return;
+        }
+
+        if (!database.delete_user(user_id)) {
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to delete user");
+            return;
+        }
+
+        send_json(response, 200, {{"status", "ok"}});
+    });
+}

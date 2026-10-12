@@ -29,3 +29,10 @@ struct JudgeTask {
     std::uint64_t problem_id = 0;
     std::string code;
 };
+
+struct UserSummary {
+    std::uint64_t id = 0;
+    std::string username;
+    std::string role;
+    std::string created_at;
+};

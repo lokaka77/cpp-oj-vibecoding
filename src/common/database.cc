@@ -923,3 +923,89 @@ bool Database::list_solved_problem_ids(
 
     return fetch_result == MYSQL_NO_DATA;
 }
+
+bool Database::list_users(std::vector<UserSummary>& users) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "SELECT id, username, role, "
+        "DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') "
+        "FROM users ORDER BY id ASC");
+    if (!statement || mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    std::uint64_t id = 0;
+    unsigned long username_length = 0;
+    unsigned long role_length = 0;
+    unsigned long created_at_length = 0;
+    char username[51]{};
+    char role[16]{};
+    char created_at[32]{};
+
+    MYSQL_BIND result[4]{};
+    result[0].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[0].buffer = &id;
+
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = username;
+    result[1].buffer_length = sizeof(username);
+    result[1].length = &username_length;
+
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = role;
+    result[2].buffer_length = sizeof(role);
+    result[2].length = &role_length;
+
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = created_at;
+    result[3].buffer_length = sizeof(created_at);
+    result[3].length = &created_at_length;
+
+    if (mysql_stmt_bind_result(statement.get(), result) != 0) {
+        return false;
+    }
+
+    int fetch_result = 0;
+    while ((fetch_result = mysql_stmt_fetch(statement.get())) == 0) {
+        UserSummary user;
+        user.id = id;
+        user.username.assign(username, username_length);
+        user.role.assign(role, role_length);
+        user.created_at.assign(created_at, created_at_length);
+        users.push_back(std::move(user));
+    }
+
+    return fetch_result == MYSQL_NO_DATA;
+}
+
+bool Database::delete_user(std::uint64_t user_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "DELETE FROM users WHERE id = ? AND role = 'user'");
+    if (!statement) {
+        return false;
+    }
+
+    MYSQL_BIND parameter{};
+    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    parameter.buffer = &user_id;
+
+    if (mysql_stmt_bind_param(statement.get(), &parameter) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    return mysql_stmt_affected_rows(statement.get()) > 0;
+}
