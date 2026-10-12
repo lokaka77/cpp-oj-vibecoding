@@ -2,6 +2,7 @@
 
 #include "compiler.h"
 #include "logging.h"
+#include "output_comparer.h"
 #include "process_runner.h"
 
 #include <chrono>
@@ -11,19 +12,6 @@
 #include <string>
 
 namespace {
-
-std::string trim_trailing_whitespace(const std::string& value) {
-    std::size_t end = value.size();
-    while (end > 0) {
-        char current = value[end - 1];
-        if (current != ' ' && current != '\t' &&
-            current != '\r' && current != '\n') {
-            break;
-        }
-        --end;
-    }
-    return value.substr(0, end);
-}
 
 std::string read_file(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary);
@@ -116,12 +104,9 @@ SampleRunResult SampleRunner::run(const std::string& code,
                 return {false, "RE", "运行时错误"};
             }
 
-            std::string actual =
-                trim_trailing_whitespace(read_file(output_file));
-            std::string expected = trim_trailing_whitespace(
-                samples[index].expected_output_data);
-
-            if (actual != expected) {
+            const std::string actual = read_file(output_file);
+            if (!OutputComparer::matches(
+                    actual, samples[index].expected_output_data)) {
                 return {false, "WA", "样例未通过"};
             }
         }

@@ -35,6 +35,7 @@ target_link_libraries(oj_common PUBLIC
 
 add_executable(web_server
     src/judge/compiler.cc
+    src/judge/output_comparer.cc
     src/judge/process_runner.cc
     src/judge/sample_runner.cc
     src/web_server/admin_service.cc
@@ -67,12 +68,14 @@ add_executable(oj_tests
     tests/unit/error_response_test.cc
     tests/unit/judge_worker_test.cc
     tests/unit/logging_test.cc
+    tests/unit/output_comparer_test.cc
     tests/unit/password_test.cc
     tests/unit/problem_service_test.cc
     tests/unit/process_runner_test.cc
     tests/unit/sample_runner_test.cc
     tests/unit/session_test.cc
     src/judge/compiler.cc
+    src/judge/output_comparer.cc
     src/judge/process_runner.cc
     src/judge/sample_runner.cc
     src/judge/judge_worker.cc
@@ -121,6 +124,7 @@ add_executable(judge_worker
     src/judge/compiler.cc
     src/judge/main.cpp
     src/judge/judge_worker.cc
+    src/judge/output_comparer.cc
     src/judge/process_runner.cc
     src/judge/sample_runner.cc
 )
