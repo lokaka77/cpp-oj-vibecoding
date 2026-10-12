@@ -75,3 +75,20 @@ target_link_libraries(oj_tests PRIVATE
 )
 
 add_test(NAME oj_tests COMMAND oj_tests)
+
+add_executable(database_integration_tests
+    tests/integration/database_test.cc
+)
+
+target_include_directories(database_integration_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(database_integration_tests PRIVATE
+    oj_common
+    GTest::gtest
+    GTest::gtest_main
+)
+
+add_test(NAME database_integration_tests COMMAND database_integration_tests)

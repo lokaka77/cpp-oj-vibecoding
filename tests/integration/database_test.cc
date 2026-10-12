@@ -1,0 +1,155 @@
+#include <gtest/gtest.h>
+
+#include "database.h"
+
+#include <mysql/mysql.h>
+
+#include <cstdint>
+#include <ctime>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace {
+
+struct MysqlDeleter {
+    void operator()(MYSQL* connection) const {
+        if (connection != nullptr) {
+            mysql_close(connection);
+        }
+    }
+};
+
+std::string unique_suffix() {
+    return std::to_string(static_cast<std::uint64_t>(std::time(nullptr)));
+}
+
+}  // namespace
+
+class DatabaseIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        DatabaseConfig config;
+        config.host = "127.0.0.1";
+        config.port = 3306;
+        config.user = "oj_app";
+        config.password = "oj_app_pass";
+        config.name = "oj";
+
+        if (!database_.connect(config)) {
+            GTEST_SKIP() << "MySQL is not available";
+        }
+
+        raw_.reset(mysql_init(nullptr));
+        if (!raw_) {
+            GTEST_SKIP() << "Unable to initialize MySQL connection";
+        }
+
+        my_bool ssl_enforce = 0;
+        my_bool ssl_verify = 0;
+        mysql_options(raw_.get(), MYSQL_OPT_SSL_ENFORCE, &ssl_enforce);
+        mysql_options(raw_.get(), MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &ssl_verify);
+
+        if (mysql_real_connect(raw_.get(),
+                               config.host.c_str(),
+                               config.user.c_str(),
+                               config.password.c_str(),
+                               config.name.c_str(),
+                               config.port,
+                               nullptr,
+                               0) == nullptr) {
+            raw_.reset();
+            GTEST_SKIP() << "Unable to connect to MySQL test database";
+        }
+    }
+
+    void TearDown() override {
+        for (auto it = cleanup_.rbegin(); it != cleanup_.rend(); ++it) {
+            mysql_query(raw_.get(), it->c_str());
+        }
+        cleanup_.clear();
+        raw_.reset();
+    }
+
+    bool execute(const std::string& sql) {
+        return mysql_query(raw_.get(), sql.c_str()) == 0;
+    }
+
+    void defer_cleanup(const std::string& sql) {
+        cleanup_.push_back(sql);
+    }
+
+    Database database_;
+    std::unique_ptr<MYSQL, MysqlDeleter> raw_;
+    std::vector<std::string> cleanup_;
+};
+
+TEST_F(DatabaseIntegrationTest, InsertsAndFindsUser) {
+    const std::string username = "it_user_" + unique_suffix();
+    defer_cleanup("DELETE FROM users WHERE username='" + username + "'");
+
+    AuthUser user;
+    ASSERT_TRUE(database_.insert_user(username, "test_hash", "user"));
+    ASSERT_TRUE(database_.find_user_by_username(username, user));
+
+    EXPECT_EQ(user.username, username);
+    EXPECT_EQ(user.password_hash, "test_hash");
+    EXPECT_EQ(user.role, "user");
+
+    AuthUser by_id;
+    ASSERT_TRUE(database_.find_user_by_id(user.id, by_id));
+    EXPECT_EQ(by_id.username, username);
+}
+
+TEST_F(DatabaseIntegrationTest, ListsProblemAndVisibleSamples) {
+    const std::string title = "IT Problem " + unique_suffix();
+    ASSERT_TRUE(execute(
+        "INSERT INTO problems (title, description) VALUES ('" + title +
+        "', 'integration test description')"));
+
+    const std::uint64_t problem_id = mysql_insert_id(raw_.get());
+    defer_cleanup("DELETE FROM problems WHERE id=" +
+                  std::to_string(problem_id));
+
+    ASSERT_TRUE(execute(
+        "INSERT INTO test_cases "
+        "(problem_id, input_data, expected_output_data, is_sample, order_index) "
+        "VALUES (" + std::to_string(problem_id) + ", '1 2\\n', '3\\n', 1, 1)"));
+    ASSERT_TRUE(execute(
+        "INSERT INTO test_cases "
+        "(problem_id, input_data, expected_output_data, is_sample, order_index) "
+        "VALUES (" + std::to_string(problem_id) + ", '10 20\\n', '30\\n', 1, 2)"));
+    ASSERT_TRUE(execute(
+        "INSERT INTO test_cases "
+        "(problem_id, input_data, expected_output_data, is_sample, order_index) "
+        "VALUES (" + std::to_string(problem_id) + ", '-1 1\\n', '0\\n', 0, 3)"));
+
+    std::vector<ProblemSummary> problems;
+    ASSERT_TRUE(database_.list_problems(problems));
+
+    bool found = false;
+    for (const ProblemSummary& problem : problems) {
+        if (problem.id == problem_id) {
+            EXPECT_EQ(problem.title, title);
+            found = true;
+        }
+    }
+    EXPECT_TRUE(found);
+
+    Problem detail;
+    ASSERT_TRUE(database_.find_problem_by_id(problem_id, detail));
+    EXPECT_EQ(detail.title, title);
+    EXPECT_EQ(detail.description, "integration test description");
+
+    std::vector<TestCase> samples;
+    ASSERT_TRUE(database_.list_sample_test_cases(problem_id, samples));
+    ASSERT_EQ(samples.size(), 2);
+    EXPECT_TRUE(samples[0].is_sample);
+    EXPECT_EQ(samples[0].order_index, 1);
+    EXPECT_EQ(samples[1].order_index, 2);
+}
+
+TEST_F(DatabaseIntegrationTest, MissingProblemReturnsFalse) {
+    Problem problem;
+    EXPECT_FALSE(database_.find_problem_by_id(999999999, problem));
+}
