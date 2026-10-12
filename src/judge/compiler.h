@@ -7,6 +7,7 @@
 
 struct CompileResult {
     bool success = false;
+    std::string friendly_message;
     std::string diagnostics;
 };
 

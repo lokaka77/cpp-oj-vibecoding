@@ -42,6 +42,7 @@ add_executable(web_server
     src/web_server/auth_middleware.cc
     src/web_server/auth_service.cc
     src/web_server/problem_service.cc
+    src/web_server/rate_limiter.cc
     src/web_server/session.cc
     src/web_server/main.cpp
 )
@@ -72,6 +73,7 @@ add_executable(oj_tests
     tests/unit/password_test.cc
     tests/unit/problem_service_test.cc
     tests/unit/process_runner_test.cc
+    tests/unit/rate_limiter_test.cc
     tests/unit/sample_runner_test.cc
     tests/unit/session_test.cc
     src/judge/compiler.cc
@@ -79,6 +81,7 @@ add_executable(oj_tests
     src/judge/process_runner.cc
     src/judge/sample_runner.cc
     src/judge/judge_worker.cc
+    src/web_server/rate_limiter.cc
     src/web_server/session.cc
 )
 

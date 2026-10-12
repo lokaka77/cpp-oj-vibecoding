@@ -111,7 +111,8 @@ TEST(ConfigManagerTest, LoadsJudgeConfig) {
         "judge:\n"
         "  worker_count: 3\n"
         "  time_limit_ms: 1500\n"
-        "  memory_limit_mb: 256\n");
+        "  memory_limit_mb: 256\n"
+        "  submit_interval_ms: 2500\n");
 
     ConfigManager& manager = ConfigManager::instance();
     ASSERT_TRUE(manager.load(file.path()));
@@ -120,6 +121,7 @@ TEST(ConfigManagerTest, LoadsJudgeConfig) {
     EXPECT_EQ(judge.worker_count, 3);
     EXPECT_EQ(judge.time_limit_ms, 1500);
     EXPECT_EQ(judge.memory_limit_mb, 256);
+    EXPECT_EQ(judge.submit_interval_ms, 2500);
 }
 
 TEST(ConfigManagerTest, ReloadResetsPreviousValues) {
@@ -173,6 +175,15 @@ TEST(ConfigManagerTest, RejectsInvalidJudgeMemoryLimit) {
         "server: {}\n"
         "judge:\n"
         "  memory_limit_mb: 0\n");
+
+    EXPECT_FALSE(ConfigManager::instance().load(file.path()));
+}
+
+TEST(ConfigManagerTest, RejectsNegativeSubmitInterval) {
+    TempConfigFile file(
+        "server: {}\n"
+        "judge:\n"
+        "  submit_interval_ms: -1\n");
 
     EXPECT_FALSE(ConfigManager::instance().load(file.path()));
 }

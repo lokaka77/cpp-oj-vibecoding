@@ -71,7 +71,11 @@ SampleRunResult SampleRunner::run(const std::string& code,
         CompileResult compile_result = compiler.compile(source, executable);
         if (!compile_result.success) {
             log_warning("Compilation failed: " + compile_result.diagnostics);
-            return {false, "CE", "编译错误"};
+            const std::string message =
+                compile_result.friendly_message.empty()
+                    ? "编译错误"
+                    : compile_result.friendly_message;
+            return {false, "CE", message};
         }
 
         for (std::size_t index = 0; index < samples.size(); ++index) {

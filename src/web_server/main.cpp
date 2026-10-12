@@ -4,10 +4,12 @@
 #include "database.h"
 #include "logging.h"
 #include "problem_service.h"
+#include "rate_limiter.h"
 #include "session.h"
 
 #include <httplib.h>
 
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 
@@ -18,6 +20,8 @@ void run_http_server(const ServerConfig& config) {
     }
 
     SessionManager sessions;
+    SubmissionRateLimiter rate_limiter(
+        std::chrono::milliseconds(config.judge.submit_interval_ms));
     httplib::Server server;
 
     server.set_mount_point("/", config.web_root);
@@ -34,7 +38,8 @@ void run_http_server(const ServerConfig& config) {
 
     register_auth_routes(server, database, sessions);
     register_admin_problem_routes(server, database, sessions);
-    register_problem_routes(server, database, sessions, config.judge);
+    register_problem_routes(
+        server, database, sessions, config.judge, rate_limiter);
 
     log_info("HTTP server listening on " + config.listen_address + ":" +
              std::to_string(config.port));

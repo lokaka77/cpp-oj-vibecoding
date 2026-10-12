@@ -16,6 +16,7 @@ struct JudgeConfig {
     int worker_count = 2;
     int time_limit_ms = 1000;
     int memory_limit_mb = 128;
+    int submit_interval_ms = 3000;
 };
 
 struct ServerConfig {

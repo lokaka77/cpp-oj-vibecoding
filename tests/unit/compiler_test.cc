@@ -69,6 +69,7 @@ TEST(CompilerTest, CompilesCpp17StructuredBindings) {
     CompileResult result = compiler.compile(source, executable);
 
     EXPECT_TRUE(result.success);
+    EXPECT_TRUE(result.friendly_message.empty());
     EXPECT_TRUE(std::filesystem::exists(executable));
 }
 
@@ -83,5 +84,7 @@ TEST(CompilerTest, ReportsDiagnosticsForInvalidCode) {
     CompileResult result = compiler.compile(source, executable);
 
     EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.friendly_message, "编译错误");
+    EXPECT_EQ(result.friendly_message.find("error:"), std::string::npos);
     EXPECT_FALSE(result.diagnostics.empty());
 }

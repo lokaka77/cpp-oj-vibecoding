@@ -76,6 +76,7 @@ TEST(SampleRunnerTest, DetectsCompileError) {
     EXPECT_FALSE(result.passed);
     EXPECT_EQ(result.verdict, "CE");
     EXPECT_EQ(result.message, "编译错误");
+    EXPECT_EQ(result.message.find("error:"), std::string::npos);
 }
 
 TEST(SampleRunnerTest, DetectsRuntimeError) {

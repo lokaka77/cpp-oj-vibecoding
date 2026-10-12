@@ -4,6 +4,7 @@
 
 #include "database.h"
 #include "oj/models.h"
+#include "rate_limiter.h"
 #include "session.h"
 
 #include <nlohmann/json.hpp>
@@ -13,7 +14,8 @@
 void register_problem_routes(httplib::Server& server,
                              Database& database,
                              SessionManager& sessions,
-                             const JudgeConfig& judge_config);
+                             const JudgeConfig& judge_config,
+                             SubmissionRateLimiter& rate_limiter);
 
 inline nlohmann::json problem_list_json(
     const std::vector<ProblemSummary>& problems) {

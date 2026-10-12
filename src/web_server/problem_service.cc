@@ -15,7 +15,8 @@
 void register_problem_routes(httplib::Server& server,
                              Database& database,
                              SessionManager& sessions,
-                             const JudgeConfig& judge_config) {
+                             const JudgeConfig& judge_config,
+                             SubmissionRateLimiter& rate_limiter) {
     server.Get("/api/problems", [&](const httplib::Request&,
                                     httplib::Response& response) {
         std::vector<ProblemSummary> problems;
@@ -105,6 +106,14 @@ void register_problem_routes(httplib::Server& server,
         AuthUser user;
         if (!require_authenticated(request, response, database, sessions,
                                    user)) {
+            return;
+        }
+
+        if (!rate_limiter.allow(user.id)) {
+            const auto retry_after = rate_limiter.retry_after(user.id);
+            send_error(response, 429, "RATE_LIMITED",
+                       "submission too frequent",
+                       {{"retry_after_ms", retry_after.count()}});
             return;
         }
 

@@ -43,5 +43,8 @@ CompileResult Compiler::compile(
     result.success = process.started && !process.timed_out &&
                      process.exit_code == 0;
     result.diagnostics = read_file(log_path);
+    if (!result.success) {
+        result.friendly_message = "编译错误";
+    }
     return result;
 }
