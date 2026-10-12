@@ -70,6 +70,88 @@ bool fetch_user(MYSQL_STMT* statement, AuthUser& user) {
     return true;
 }
 
+bool query_test_cases(MYSQL* connection,
+                      std::uint64_t problem_id,
+                      bool only_samples,
+                      std::vector<TestCase>& test_cases) {
+    const char* sql_with_samples =
+        "SELECT id, problem_id, input_data, expected_output_data, "
+        "is_sample, order_index "
+        "FROM test_cases WHERE problem_id = ? AND is_sample = 1 "
+        "ORDER BY order_index ASC";
+    const char* sql_all =
+        "SELECT id, problem_id, input_data, expected_output_data, "
+        "is_sample, order_index "
+        "FROM test_cases WHERE problem_id = ? "
+        "ORDER BY order_index ASC";
+
+    StatementPtr statement =
+        make_statement(connection, only_samples ? sql_with_samples : sql_all);
+    if (!statement) {
+        return false;
+    }
+
+    MYSQL_BIND parameter{};
+    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    parameter.buffer = &problem_id;
+    if (mysql_stmt_bind_param(statement.get(), &parameter) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    unsigned long input_length = 0;
+    unsigned long expected_length = 0;
+    std::vector<char> input(1024 * 1024);
+    std::vector<char> expected(1024 * 1024);
+    signed char is_sample = 0;
+    unsigned char order_index = 0;
+    std::uint64_t id = 0;
+    std::uint64_t fetched_problem_id = 0;
+
+    MYSQL_BIND result[6]{};
+    result[0].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[0].buffer = &id;
+
+    result[1].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[1].buffer = &fetched_problem_id;
+
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = input.data();
+    result[2].buffer_length = input.size();
+    result[2].length = &input_length;
+
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = expected.data();
+    result[3].buffer_length = expected.size();
+    result[3].length = &expected_length;
+
+    result[4].buffer_type = MYSQL_TYPE_TINY;
+    result[4].buffer = &is_sample;
+
+    result[5].buffer_type = MYSQL_TYPE_TINY;
+    result[5].buffer = &order_index;
+    result[5].is_unsigned = true;
+
+    if (mysql_stmt_bind_result(statement.get(), result) != 0) {
+        return false;
+    }
+
+    int fetch_result = 0;
+    while ((fetch_result = mysql_stmt_fetch(statement.get())) == 0 ||
+           fetch_result == MYSQL_DATA_TRUNCATED) {
+        TestCase test_case;
+        test_case.id = id;
+        test_case.problem_id = fetched_problem_id;
+        test_case.input_data.assign(input.data(), input_length);
+        test_case.expected_output_data.assign(expected.data(), expected_length);
+        test_case.is_sample = is_sample != 0;
+        test_case.order_index = order_index;
+        test_cases.push_back(std::move(test_case));
+    }
+
+    return fetch_result == MYSQL_NO_DATA;
+}
+
 }  // namespace
 
 Database::~Database() {
@@ -319,74 +401,66 @@ bool Database::list_sample_test_cases(std::uint64_t problem_id,
         return false;
     }
 
+    return query_test_cases(static_cast<MYSQL*>(mysql_), problem_id, true,
+                            test_cases);
+}
+
+bool Database::list_all_test_cases(std::uint64_t problem_id,
+                                   std::vector<TestCase>& test_cases) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    return query_test_cases(static_cast<MYSQL*>(mysql_), problem_id, false,
+                            test_cases);
+}
+
+bool Database::insert_submission(std::uint64_t user_id,
+                                 std::uint64_t problem_id,
+                                 const std::string& code,
+                                 const std::string& verdict,
+                                 std::uint64_t& submission_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
     auto* connection = static_cast<MYSQL*>(mysql_);
     StatementPtr statement = make_statement(
         connection,
-        "SELECT id, problem_id, input_data, expected_output_data, "
-        "is_sample, order_index "
-        "FROM test_cases WHERE problem_id = ? AND is_sample = 1 "
-        "ORDER BY order_index ASC");
+        "INSERT INTO submissions "
+        "(user_id, problem_id, code, status, verdict, finished_at) "
+        "VALUES (?, ?, ?, 'done', ?, NOW())");
     if (!statement) {
         return false;
     }
 
-    MYSQL_BIND parameter{};
-    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
-    parameter.buffer = &problem_id;
-    if (mysql_stmt_bind_param(statement.get(), &parameter) != 0 ||
+    unsigned long code_length = code.size();
+    unsigned long verdict_length = verdict.size();
+
+    MYSQL_BIND parameters[4]{};
+    parameters[0].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[0].buffer = &user_id;
+
+    parameters[1].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[1].buffer = &problem_id;
+
+    parameters[2].buffer_type = MYSQL_TYPE_STRING;
+    parameters[2].buffer = const_cast<char*>(code.c_str());
+    parameters[2].buffer_length = code.size();
+    parameters[2].length = &code_length;
+
+    parameters[3].buffer_type = MYSQL_TYPE_STRING;
+    parameters[3].buffer = const_cast<char*>(verdict.c_str());
+    parameters[3].buffer_length = verdict.size();
+    parameters[3].length = &verdict_length;
+
+    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
         mysql_stmt_execute(statement.get()) != 0) {
         return false;
     }
 
-    unsigned long input_length = 0;
-    unsigned long expected_length = 0;
-    std::vector<char> input(1024 * 1024);
-    std::vector<char> expected(1024 * 1024);
-    signed char is_sample = 0;
-    unsigned char order_index = 0;
-    std::uint64_t id = 0;
-    std::uint64_t fetched_problem_id = 0;
-
-    MYSQL_BIND result[6]{};
-    result[0].buffer_type = MYSQL_TYPE_LONGLONG;
-    result[0].buffer = &id;
-
-    result[1].buffer_type = MYSQL_TYPE_LONGLONG;
-    result[1].buffer = &fetched_problem_id;
-
-    result[2].buffer_type = MYSQL_TYPE_STRING;
-    result[2].buffer = input.data();
-    result[2].buffer_length = input.size();
-    result[2].length = &input_length;
-
-    result[3].buffer_type = MYSQL_TYPE_STRING;
-    result[3].buffer = expected.data();
-    result[3].buffer_length = expected.size();
-    result[3].length = &expected_length;
-
-    result[4].buffer_type = MYSQL_TYPE_TINY;
-    result[4].buffer = &is_sample;
-
-    result[5].buffer_type = MYSQL_TYPE_TINY;
-    result[5].buffer = &order_index;
-    result[5].is_unsigned = true;
-
-    if (mysql_stmt_bind_result(statement.get(), result) != 0) {
-        return false;
-    }
-
-    int fetch_result = 0;
-    while ((fetch_result = mysql_stmt_fetch(statement.get())) == 0 ||
-           fetch_result == MYSQL_DATA_TRUNCATED) {
-        TestCase test_case;
-        test_case.id = id;
-        test_case.problem_id = fetched_problem_id;
-        test_case.input_data.assign(input.data(), input_length);
-        test_case.expected_output_data.assign(expected.data(), expected_length);
-        test_case.is_sample = is_sample != 0;
-        test_case.order_index = order_index;
-        test_cases.push_back(std::move(test_case));
-    }
-
-    return fetch_result == MYSQL_NO_DATA;
+    submission_id = mysql_stmt_insert_id(statement.get());
+    return true;
 }

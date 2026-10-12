@@ -68,7 +68,7 @@ SampleRunner::SampleRunner(const JudgeConfig& config)
 SampleRunResult SampleRunner::run(const std::string& code,
                                   const std::vector<TestCase>& samples) const {
     if (code.empty()) {
-        return {false, "空代码"};
+        return {false, "CE", "空代码"};
     }
 
     try {
@@ -83,7 +83,7 @@ SampleRunResult SampleRunner::run(const std::string& code,
             " -o " + executable.string();
 
         if (std::system(compile_command.c_str()) != 0) {
-            return {false, "编译错误"};
+            return {false, "CE", "编译错误"};
         }
 
         for (std::size_t index = 0; index < samples.size(); ++index) {
@@ -100,7 +100,7 @@ SampleRunResult SampleRunner::run(const std::string& code,
 
             if (std::system(run_command.c_str()) != 0) {
                 log_error("Sample run command failed: " + run_command);
-                return {false, "运行时错误"};
+                return {false, "RE", "运行时错误"};
             }
 
             std::string actual =
@@ -109,12 +109,12 @@ SampleRunResult SampleRunner::run(const std::string& code,
                 samples[index].expected_output_data);
 
             if (actual != expected) {
-                return {false, "样例未通过"};
+                return {false, "WA", "样例未通过"};
             }
         }
 
-        return {true, "样例通过"};
+        return {true, "AC", "样例通过"};
     } catch (const std::exception&) {
-        return {false, "运行失败"};
+        return {false, "RE", "运行失败"};
     }
 }

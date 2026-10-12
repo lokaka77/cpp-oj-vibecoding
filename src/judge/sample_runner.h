@@ -8,6 +8,7 @@
 
 struct SampleRunResult {
     bool passed = false;
+    std::string verdict;
     std::string message;
 };
 

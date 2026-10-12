@@ -30,6 +30,13 @@ public:
     bool find_problem_by_id(std::uint64_t id, Problem& problem);
     bool list_sample_test_cases(std::uint64_t problem_id,
                                 std::vector<TestCase>& test_cases);
+    bool list_all_test_cases(std::uint64_t problem_id,
+                             std::vector<TestCase>& test_cases);
+    bool insert_submission(std::uint64_t user_id,
+                           std::uint64_t problem_id,
+                           const std::string& code,
+                           const std::string& verdict,
+                           std::uint64_t& submission_id);
 
 private:
     void* mysql_ = nullptr;
