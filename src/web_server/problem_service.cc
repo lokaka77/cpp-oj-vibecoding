@@ -1,5 +1,9 @@
 #include "problem_service.h"
 
+#include "sample_runner.h"
+
+#include <nlohmann/json.hpp>
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -13,9 +17,39 @@ void send_json(httplib::Response& response,
     response.set_content(body.dump(), "application/json");
 }
 
+std::string cookie_value(const httplib::Request& request,
+                         const std::string& name) {
+    std::string header = request.get_header_value("Cookie");
+    if (header.empty()) {
+        return {};
+    }
+
+    std::size_t position = 0;
+    while (position < header.size()) {
+        std::size_t end = header.find(';', position);
+        if (end == std::string::npos) {
+            end = header.size();
+        }
+
+        std::string part = header.substr(position, end - position);
+        std::size_t equals = part.find('=');
+        if (equals != std::string::npos &&
+            part.substr(0, equals) == name) {
+            return part.substr(equals + 1);
+        }
+
+        position = end + 1;
+    }
+
+    return {};
+}
+
 }  // namespace
 
-void register_problem_routes(httplib::Server& server, Database& database) {
+void register_problem_routes(httplib::Server& server,
+                             Database& database,
+                             SessionManager& sessions,
+                             const JudgeConfig& judge_config) {
     server.Get("/api/problems", [&](const httplib::Request&,
                                     httplib::Response& response) {
         std::vector<ProblemSummary> problems;
@@ -45,5 +79,47 @@ void register_problem_routes(httplib::Server& server, Database& database) {
         }
 
         send_json(response, 200, problem_detail_json(problem, test_cases));
+    });
+
+    server.Post(R"(/api/problems/(\d+)/run)",
+                [&](const httplib::Request& request,
+                    httplib::Response& response) {
+        std::uint64_t user_id = 0;
+        if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
+            send_json(response, 401, {{"error", "not authenticated"}});
+            return;
+        }
+
+        nlohmann::json body;
+        try {
+            body = nlohmann::json::parse(request.body);
+        } catch (const std::exception&) {
+            send_json(response, 400, {{"error", "invalid JSON body"}});
+            return;
+        }
+
+        std::string code = body.value("code", "");
+        if (code.empty()) {
+            send_json(response, 400, {{"error", "code is required"}});
+            return;
+        }
+
+        std::uint64_t problem_id = std::stoull(request.matches[1].str());
+        Problem problem;
+        if (!database.find_problem_by_id(problem_id, problem)) {
+            send_json(response, 404, {{"error", "problem not found"}});
+            return;
+        }
+
+        std::vector<TestCase> samples;
+        if (!database.list_sample_test_cases(problem_id, samples)) {
+            send_json(response, 500, {{"error", "failed to load samples"}});
+            return;
+        }
+
+        SampleRunner runner(judge_config);
+        SampleRunResult result = runner.run(code, samples);
+        send_json(response, 200,
+                  {{"passed", result.passed}, {"message", result.message}});
     });
 }

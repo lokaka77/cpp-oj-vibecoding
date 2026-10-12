@@ -10,5 +10,9 @@ database:
   password: "oj_app_pass"
   name: oj
 
+judge:
+  compiler: g++
+  temp_dir: ./build/judge_tmp
+
 logging:
   level: info

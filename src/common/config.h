@@ -10,12 +10,18 @@ struct DatabaseConfig {
     std::string name = "oj";
 };
 
+struct JudgeConfig {
+    std::string compiler = "g++";
+    std::string temp_dir = "./build/judge_tmp";
+};
+
 struct ServerConfig {
     std::string listen_address = "0.0.0.0";
     int port = 8080;
     std::string web_root = "./web";
     std::string log_level = "info";
     DatabaseConfig database;
+    JudgeConfig judge;
 };
 
 class ConfigManager {

@@ -1,0 +1,73 @@
+#include <gtest/gtest.h>
+
+#include "sample_runner.h"
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+namespace {
+
+#ifndef OJ_TEST_COMPILER
+#define OJ_TEST_COMPILER "g++"
+#endif
+
+SampleRunner make_runner() {
+    JudgeConfig config;
+    config.compiler = OJ_TEST_COMPILER;
+    std::replace(config.compiler.begin(), config.compiler.end(), '/', '\\');
+    config.temp_dir = "./judge_test_tmp";
+    return SampleRunner(config);
+}
+
+TestCase make_sample(const std::string& input,
+                     const std::string& expected_output) {
+    TestCase sample;
+    sample.input_data = input;
+    sample.expected_output_data = expected_output;
+    sample.is_sample = true;
+    sample.order_index = 1;
+    return sample;
+}
+
+}  // namespace
+
+TEST(SampleRunnerTest, RejectsEmptyCode) {
+    SampleRunResult result = make_runner().run("", {});
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.message, "空代码");
+}
+
+TEST(SampleRunnerTest, PassesCorrectSample) {
+    std::string code =
+        "#include <iostream>\n"
+        "int main(){int a,b; std::cin>>a>>b; std::cout<<a+b;}\n";
+    std::vector<TestCase> samples = {make_sample("1 2\n", "3\n")};
+
+    SampleRunResult result = make_runner().run(code, samples);
+
+    EXPECT_TRUE(result.passed);
+    EXPECT_EQ(result.message, "样例通过");
+}
+
+TEST(SampleRunnerTest, DetectsWrongOutput) {
+    std::string code =
+        "#include <iostream>\n"
+        "int main(){std::cout<<0;}\n";
+    std::vector<TestCase> samples = {make_sample("1 2\n", "3\n")};
+
+    SampleRunResult result = make_runner().run(code, samples);
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.message, "样例未通过");
+}
+
+TEST(SampleRunnerTest, DetectsCompileError) {
+    std::string code = "int main( {";
+
+    SampleRunResult result = make_runner().run(code, {});
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.message, "编译错误");
+}

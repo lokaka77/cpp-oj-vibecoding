@@ -32,7 +32,7 @@ void run_http_server(const ServerConfig& config) {
     });
 
     register_auth_routes(server, database, sessions);
-    register_problem_routes(server, database);
+    register_problem_routes(server, database, sessions, config.judge);
 
     log_info("HTTP server listening on " + config.listen_address + ":" +
              std::to_string(config.port));

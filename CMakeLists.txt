@@ -31,6 +31,7 @@ target_link_libraries(oj_common PUBLIC
 )
 
 add_executable(web_server
+    src/judge/sample_runner.cc
     src/web_server/auth_service.cc
     src/web_server/problem_service.cc
     src/web_server/session.cc
@@ -40,6 +41,7 @@ add_executable(web_server
 target_include_directories(web_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/web_server
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/judge
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -57,14 +59,21 @@ add_executable(oj_tests
     tests/unit/logging_test.cc
     tests/unit/password_test.cc
     tests/unit/problem_service_test.cc
+    tests/unit/sample_runner_test.cc
     tests/unit/session_test.cc
+    src/judge/sample_runner.cc
     src/web_server/session.cc
 )
 
 target_include_directories(oj_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/web_server
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/judge
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_definitions(oj_tests PRIVATE
+    OJ_TEST_COMPILER="${CMAKE_CXX_COMPILER}"
 )
 
 target_link_libraries(oj_tests PRIVATE

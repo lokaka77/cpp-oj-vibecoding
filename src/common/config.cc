@@ -53,6 +53,16 @@ bool ConfigManager::load(const std::string& path) {
             }
         }
 
+        YAML::Node judge = root["judge"];
+        if (judge) {
+            if (judge["compiler"]) {
+                config_.judge.compiler = judge["compiler"].as<std::string>();
+            }
+            if (judge["temp_dir"]) {
+                config_.judge.temp_dir = judge["temp_dir"].as<std::string>();
+            }
+        }
+
         YAML::Node logging = root["logging"];
         if (logging && logging["level"]) {
             config_.log_level = logging["level"].as<std::string>();

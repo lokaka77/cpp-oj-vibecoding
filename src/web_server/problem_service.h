@@ -4,12 +4,16 @@
 
 #include "database.h"
 #include "oj/models.h"
+#include "session.h"
 
 #include <nlohmann/json.hpp>
 
 #include <vector>
 
-void register_problem_routes(httplib::Server& server, Database& database);
+void register_problem_routes(httplib::Server& server,
+                             Database& database,
+                             SessionManager& sessions,
+                             const JudgeConfig& judge_config);
 
 inline nlohmann::json problem_list_json(
     const std::vector<ProblemSummary>& problems) {
