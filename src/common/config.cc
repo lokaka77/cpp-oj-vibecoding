@@ -61,6 +61,15 @@ bool ConfigManager::load(const std::string& path) {
             if (judge["temp_dir"]) {
                 config_.judge.temp_dir = judge["temp_dir"].as<std::string>();
             }
+            if (judge["worker_count"]) {
+                config_.judge.worker_count =
+                    judge["worker_count"].as<int>();
+            }
+        }
+
+        if (config_.judge.worker_count < 1 ||
+            config_.judge.worker_count > 64) {
+            throw std::runtime_error("Invalid judge worker count");
         }
 
         YAML::Node logging = root["logging"];

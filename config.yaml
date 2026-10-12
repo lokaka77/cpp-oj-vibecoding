@@ -13,6 +13,7 @@ database:
 judge:
   compiler: g++
   temp_dir: ./build/judge_tmp
+  worker_count: 2
 
 logging:
   level: info

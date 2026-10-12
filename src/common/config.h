@@ -13,6 +13,7 @@ struct DatabaseConfig {
 struct JudgeConfig {
     std::string compiler = "g++";
     std::string temp_dir = "./build/judge_tmp";
+    int worker_count = 2;
 };
 
 struct ServerConfig {

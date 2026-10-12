@@ -14,6 +14,7 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(unofficial-libmariadb CONFIG REQUIRED)
 find_package(unofficial-sodium CONFIG REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(oj_common STATIC
     src/common/config.cc
@@ -61,12 +62,14 @@ enable_testing()
 add_executable(oj_tests
     tests/unit/config_test.cc
     tests/unit/error_response_test.cc
+    tests/unit/judge_worker_test.cc
     tests/unit/logging_test.cc
     tests/unit/password_test.cc
     tests/unit/problem_service_test.cc
     tests/unit/sample_runner_test.cc
     tests/unit/session_test.cc
     src/judge/sample_runner.cc
+    src/judge/judge_worker.cc
     src/web_server/session.cc
 )
 
@@ -86,6 +89,7 @@ target_link_libraries(oj_tests PRIVATE
     httplib::httplib
     GTest::gtest
     GTest::gtest_main
+    Threads::Threads
 )
 
 add_test(NAME oj_tests COMMAND oj_tests)
@@ -106,3 +110,19 @@ target_link_libraries(database_integration_tests PRIVATE
 )
 
 add_test(NAME database_integration_tests COMMAND database_integration_tests)
+
+add_executable(judge_worker
+    src/judge/main.cpp
+    src/judge/judge_worker.cc
+)
+
+target_include_directories(judge_worker PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/judge
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(judge_worker PRIVATE
+    oj_common
+    Threads::Threads
+)
