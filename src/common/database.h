@@ -44,6 +44,9 @@ public:
                         const std::string& title,
                         const std::string& description);
     bool delete_problem(std::uint64_t problem_id);
+    bool replace_test_cases(std::uint64_t problem_id,
+                            const std::vector<TestCase>& test_cases,
+                            std::string& error);
 
 private:
     void* mysql_ = nullptr;

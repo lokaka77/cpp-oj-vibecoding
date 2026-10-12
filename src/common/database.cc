@@ -562,3 +562,97 @@ bool Database::delete_problem(std::uint64_t problem_id) {
     return mysql_stmt_bind_param(statement.get(), &parameter) == 0 &&
            mysql_stmt_execute(statement.get()) == 0;
 }
+
+bool Database::replace_test_cases(
+    std::uint64_t problem_id,
+    const std::vector<TestCase>& test_cases,
+    std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        error = "database is not connected";
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    if (mysql_query(connection, "START TRANSACTION") != 0) {
+        error = mysql_error(connection);
+        return false;
+    }
+
+    auto rollback = [&]() {
+        mysql_query(connection, "ROLLBACK");
+        error = mysql_error(connection);
+    };
+
+    StatementPtr delete_statement = make_statement(
+        connection,
+        "DELETE FROM test_cases WHERE problem_id = ?");
+    if (!delete_statement) {
+        rollback();
+        return false;
+    }
+
+    MYSQL_BIND delete_parameter{};
+    delete_parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    delete_parameter.buffer = &problem_id;
+    if (mysql_stmt_bind_param(delete_statement.get(), &delete_parameter) != 0 ||
+        mysql_stmt_execute(delete_statement.get()) != 0) {
+        rollback();
+        return false;
+    }
+
+    StatementPtr insert_statement = make_statement(
+        connection,
+        "INSERT INTO test_cases "
+        "(problem_id, input_data, expected_output_data, is_sample, order_index) "
+        "VALUES (?, ?, ?, ?, ?)");
+    if (!insert_statement) {
+        rollback();
+        return false;
+    }
+
+    for (const TestCase& test_case : test_cases) {
+        unsigned long input_length = test_case.input_data.size();
+        unsigned long expected_length =
+            test_case.expected_output_data.size();
+        signed char is_sample = test_case.is_sample ? 1 : 0;
+        unsigned char order_index =
+            static_cast<unsigned char>(test_case.order_index);
+
+        MYSQL_BIND parameters[5]{};
+        parameters[0].buffer_type = MYSQL_TYPE_LONGLONG;
+        parameters[0].buffer = &problem_id;
+
+        parameters[1].buffer_type = MYSQL_TYPE_STRING;
+        parameters[1].buffer =
+            const_cast<char*>(test_case.input_data.c_str());
+        parameters[1].buffer_length = test_case.input_data.size();
+        parameters[1].length = &input_length;
+
+        parameters[2].buffer_type = MYSQL_TYPE_STRING;
+        parameters[2].buffer =
+            const_cast<char*>(test_case.expected_output_data.c_str());
+        parameters[2].buffer_length = test_case.expected_output_data.size();
+        parameters[2].length = &expected_length;
+
+        parameters[3].buffer_type = MYSQL_TYPE_TINY;
+        parameters[3].buffer = &is_sample;
+
+        parameters[4].buffer_type = MYSQL_TYPE_TINY;
+        parameters[4].buffer = &order_index;
+        parameters[4].is_unsigned = true;
+
+        if (mysql_stmt_bind_param(insert_statement.get(), parameters) != 0 ||
+            mysql_stmt_execute(insert_statement.get()) != 0) {
+            rollback();
+            return false;
+        }
+    }
+
+    if (mysql_query(connection, "COMMIT") != 0) {
+        rollback();
+        return false;
+    }
+
+    return true;
+}
