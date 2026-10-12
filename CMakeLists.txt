@@ -114,6 +114,7 @@ add_test(NAME database_integration_tests COMMAND database_integration_tests)
 add_executable(judge_worker
     src/judge/main.cpp
     src/judge/judge_worker.cc
+    src/judge/sample_runner.cc
 )
 
 target_include_directories(judge_worker PRIVATE

@@ -47,6 +47,17 @@ public:
     bool replace_test_cases(std::uint64_t problem_id,
                             const std::vector<TestCase>& test_cases,
                             std::string& error);
+    bool insert_pending_submission(std::uint64_t user_id,
+                                   std::uint64_t problem_id,
+                                   const std::string& code,
+                                   std::uint64_t& submission_id);
+    bool claim_pending_submission(JudgeTask& task);
+    bool finish_submission(std::uint64_t submission_id,
+                           const std::string& verdict,
+                           std::string& error);
+    bool get_submission_result(std::uint64_t submission_id,
+                               std::string& status,
+                               std::string& verdict);
 
 private:
     void* mysql_ = nullptr;

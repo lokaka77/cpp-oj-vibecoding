@@ -6,8 +6,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <string>
+#include <thread>
 #include <vector>
 
 void register_problem_routes(httplib::Server& server,
@@ -127,26 +129,37 @@ void register_problem_routes(httplib::Server& server,
             return;
         }
 
-        std::vector<TestCase> test_cases;
-        if (!database.list_all_test_cases(problem_id, test_cases)) {
-            send_error(response, 500, "INTERNAL_ERROR",
-                       "failed to load test cases");
-            return;
-        }
-
-        SampleRunner runner(judge_config);
-        SampleRunResult result = runner.run(code, test_cases);
-
         std::uint64_t submission_id = 0;
-        if (!database.insert_submission(user.id, problem_id, code,
-                                        result.verdict, submission_id)) {
+        if (!database.insert_pending_submission(user.id, problem_id, code,
+                                                submission_id)) {
             send_error(response, 500, "INTERNAL_ERROR",
                        "failed to save submission");
             return;
         }
 
-        send_json(response, 200,
-                  {{"submission_id", submission_id},
-                   {"verdict", result.verdict}});
+        const auto deadline =
+            std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        while (std::chrono::steady_clock::now() < deadline) {
+            std::string status;
+            std::string verdict;
+            if (!database.get_submission_result(submission_id, status,
+                                                verdict)) {
+                send_error(response, 500, "INTERNAL_ERROR",
+                           "failed to read submission result");
+                return;
+            }
+
+            if (status == "done") {
+                send_json(response, 200,
+                          {{"submission_id", submission_id},
+                           {"verdict", verdict}});
+                return;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+
+        send_error(response, 503, "JUDGE_TIMEOUT",
+                   "judge worker did not finish in time");
     });
 }

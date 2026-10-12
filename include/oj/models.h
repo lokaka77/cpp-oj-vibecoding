@@ -22,3 +22,10 @@ struct TestCase {
     bool is_sample = false;
     int order_index = 0;
 };
+
+struct JudgeTask {
+    std::uint64_t submission_id = 0;
+    std::uint64_t user_id = 0;
+    std::uint64_t problem_id = 0;
+    std::string code;
+};

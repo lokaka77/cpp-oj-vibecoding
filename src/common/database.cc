@@ -656,3 +656,228 @@ bool Database::replace_test_cases(
 
     return true;
 }
+
+bool Database::insert_pending_submission(std::uint64_t user_id,
+                                         std::uint64_t problem_id,
+                                         const std::string& code,
+                                         std::uint64_t& submission_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "INSERT INTO submissions "
+        "(user_id, problem_id, code, status) "
+        "VALUES (?, ?, ?, 'pending')");
+    if (!statement) {
+        return false;
+    }
+
+    unsigned long code_length = code.size();
+
+    MYSQL_BIND parameters[3]{};
+    parameters[0].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[0].buffer = &user_id;
+
+    parameters[1].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[1].buffer = &problem_id;
+
+    parameters[2].buffer_type = MYSQL_TYPE_STRING;
+    parameters[2].buffer = const_cast<char*>(code.c_str());
+    parameters[2].buffer_length = code.size();
+    parameters[2].length = &code_length;
+
+    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    submission_id = mysql_stmt_insert_id(statement.get());
+    return true;
+}
+
+bool Database::claim_pending_submission(JudgeTask& task) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    if (mysql_query(connection, "START TRANSACTION") != 0) {
+        return false;
+    }
+
+    auto rollback = [&]() {
+        mysql_query(connection, "ROLLBACK");
+    };
+
+    StatementPtr select_statement = make_statement(
+        connection,
+        "SELECT id, user_id, problem_id, code FROM submissions "
+        "WHERE status = 'pending' ORDER BY id ASC "
+        "LIMIT 1 FOR UPDATE SKIP LOCKED");
+    if (!select_statement ||
+        mysql_stmt_execute(select_statement.get()) != 0) {
+        rollback();
+        return false;
+    }
+
+    unsigned long code_length = 0;
+    std::vector<char> code(16 * 1024 * 1024);
+    MYSQL_BIND result[4]{};
+    result[0].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[0].buffer = &task.submission_id;
+    result[1].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[1].buffer = &task.user_id;
+    result[2].buffer_type = MYSQL_TYPE_LONGLONG;
+    result[2].buffer = &task.problem_id;
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = code.data();
+    result[3].buffer_length = code.size();
+    result[3].length = &code_length;
+
+    if (mysql_stmt_bind_result(select_statement.get(), result) != 0) {
+        rollback();
+        return false;
+    }
+
+    int fetch_result = mysql_stmt_fetch(select_statement.get());
+    if (fetch_result == MYSQL_NO_DATA) {
+        mysql_query(connection, "COMMIT");
+        return false;
+    }
+    if (fetch_result != 0 && fetch_result != MYSQL_DATA_TRUNCATED) {
+        rollback();
+        return false;
+    }
+
+    task.code.assign(code.data(), code_length);
+    select_statement.reset();
+
+    StatementPtr update_statement = make_statement(
+        connection,
+        "UPDATE submissions SET status = 'judging' WHERE id = ?");
+    if (!update_statement) {
+        rollback();
+        return false;
+    }
+
+    MYSQL_BIND update_parameter{};
+    update_parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    update_parameter.buffer = &task.submission_id;
+    if (mysql_stmt_bind_param(update_statement.get(), &update_parameter) != 0 ||
+        mysql_stmt_execute(update_statement.get()) != 0) {
+        rollback();
+        return false;
+    }
+
+    if (mysql_query(connection, "COMMIT") != 0) {
+        rollback();
+        return false;
+    }
+
+    return true;
+}
+
+bool Database::finish_submission(std::uint64_t submission_id,
+                                const std::string& verdict,
+                                std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        error = "database is not connected";
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "UPDATE submissions "
+        "SET status = 'done', verdict = ?, finished_at = NOW() "
+        "WHERE id = ?");
+    if (!statement) {
+        error = mysql_error(connection);
+        return false;
+    }
+
+    unsigned long verdict_length = verdict.size();
+    MYSQL_BIND parameters[2]{};
+    parameters[0].buffer_type = MYSQL_TYPE_STRING;
+    parameters[0].buffer = const_cast<char*>(verdict.c_str());
+    parameters[0].buffer_length = verdict.size();
+    parameters[0].length = &verdict_length;
+
+    parameters[1].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[1].buffer = &submission_id;
+
+    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        error = mysql_stmt_error(statement.get());
+        return false;
+    }
+
+    return true;
+}
+
+bool Database::get_submission_result(std::uint64_t submission_id,
+                                     std::string& status,
+                                     std::string& verdict) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "SELECT status, verdict FROM submissions WHERE id = ?");
+    if (!statement) {
+        return false;
+    }
+
+    MYSQL_BIND parameter{};
+    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    parameter.buffer = &submission_id;
+    if (mysql_stmt_bind_param(statement.get(), &parameter) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    char status_buffer[16]{};
+    char verdict_buffer[8]{};
+    unsigned long status_length = 0;
+    unsigned long verdict_length = 0;
+    my_bool status_null = 0;
+    my_bool verdict_null = 0;
+
+    MYSQL_BIND result[2]{};
+    result[0].buffer_type = MYSQL_TYPE_STRING;
+    result[0].buffer = status_buffer;
+    result[0].buffer_length = sizeof(status_buffer);
+    result[0].length = &status_length;
+    result[0].is_null = &status_null;
+
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = verdict_buffer;
+    result[1].buffer_length = sizeof(verdict_buffer);
+    result[1].length = &verdict_length;
+    result[1].is_null = &verdict_null;
+
+    if (mysql_stmt_bind_result(statement.get(), result) != 0) {
+        return false;
+    }
+
+    int fetch_result = mysql_stmt_fetch(statement.get());
+    if (fetch_result == MYSQL_NO_DATA) {
+        return false;
+    }
+    if (fetch_result != 0 && fetch_result != MYSQL_DATA_TRUNCATED) {
+        return false;
+    }
+
+    status.assign(status_buffer, status_length);
+    verdict = verdict_null ? "" : std::string(verdict_buffer, verdict_length);
+    return true;
+}

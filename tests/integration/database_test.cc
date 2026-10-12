@@ -153,3 +153,37 @@ TEST_F(DatabaseIntegrationTest, MissingProblemReturnsFalse) {
     Problem problem;
     EXPECT_FALSE(database_.find_problem_by_id(999999999, problem));
 }
+
+TEST_F(DatabaseIntegrationTest, ClaimsAndFinishesPendingSubmission) {
+    const std::string title = "IT Judge Problem " + unique_suffix();
+    ASSERT_TRUE(execute(
+        "INSERT INTO problems (title, description) VALUES ('" + title +
+        "', 'judge queue integration test')"));
+
+    const std::uint64_t problem_id = mysql_insert_id(raw_.get());
+    defer_cleanup("DELETE FROM problems WHERE id=" +
+                  std::to_string(problem_id));
+
+    const std::string code = "int main() { return 0; }";
+    std::uint64_t submission_id = 0;
+    ASSERT_TRUE(database_.insert_pending_submission(
+        1, problem_id, code, submission_id));
+
+    JudgeTask task;
+    ASSERT_TRUE(database_.claim_pending_submission(task));
+    EXPECT_EQ(task.submission_id, submission_id);
+    EXPECT_EQ(task.problem_id, problem_id);
+    EXPECT_EQ(task.code, code);
+
+    std::string status;
+    std::string verdict;
+    ASSERT_TRUE(database_.get_submission_result(submission_id, status, verdict));
+    EXPECT_EQ(status, "judging");
+    EXPECT_TRUE(verdict.empty());
+
+    std::string error;
+    ASSERT_TRUE(database_.finish_submission(submission_id, "AC", error));
+    ASSERT_TRUE(database_.get_submission_result(submission_id, status, verdict));
+    EXPECT_EQ(status, "done");
+    EXPECT_EQ(verdict, "AC");
+}
