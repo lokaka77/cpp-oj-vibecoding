@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeHunter - 登录 / 注册</title>
+    <meta name="theme-color" content="#070a0f">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1118'/%3E%3Cpath d='M20 44 32 20l12 24' stroke='%2326d0ce' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body class="auth-page">
+    <canvas id="tech-canvas" aria-hidden="true"></canvas>
+
+    <main class="auth-shell">
+        <section class="brand-panel" aria-label="CodeHunter">
+            <div class="brand-lockup">
+                <span class="brand-mark" aria-hidden="true">C++</span>
+                <div>
+                    <p class="eyebrow">ONLINE JUDGE</p>
+                    <h1>CodeHunter</h1>
+                </div>
+            </div>
+            <p class="brand-copy">C++ 训练与判题平台</p>
+            <div class="brand-signal" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="auth-card">
+                <header class="auth-header">
+                    <p class="eyebrow">ACCOUNT ACCESS</p>
+                    <h2 id="auth-title">登录控制台</h2>
+                    <p id="auth-subtitle">登录以继续</p>
+                </header>
+
+                <div class="mode-switch" role="tablist" aria-label="登录或注册">
+                    <button id="tab-login"
+                            class="mode-tab is-active"
+                            type="button"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="auth-form">
+                        登录
+                    </button>
+                    <button id="tab-register"
+                            class="mode-tab"
+                            type="button"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="auth-form">
+                        注册
+                    </button>
+                </div>
+
+                <form id="auth-form" class="auth-form" novalidate>
+                    <div class="field">
+                        <label for="username">用户名</label>
+                        <input id="username"
+                               name="username"
+                               type="text"
+                               autocomplete="username"
+                               spellcheck="false"
+                               maxlength="50"
+                               required>
+                    </div>
+
+                    <div class="field">
+                        <label for="password">密码</label>
+                        <div class="input-shell">
+                            <input id="password"
+                                   name="password"
+                                   type="password"
+                                   autocomplete="current-password"
+                                   required>
+                            <button class="icon-button"
+                                    type="button"
+                                    data-toggle-password="password"
+                                    aria-label="显示密码"
+                                    aria-pressed="false">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="confirm-field" class="field" hidden>
+                        <label for="confirm-password">确认密码</label>
+                        <div class="input-shell">
+                            <input id="confirm-password"
+                                   name="confirm-password"
+                                   type="password"
+                                   autocomplete="new-password">
+                            <button class="icon-button"
+                                    type="button"
+                                    data-toggle-password="confirm-password"
+                                    aria-label="显示确认密码"
+                                    aria-pressed="false">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p id="form-status"
+                       class="form-status"
+                       role="status"
+                       aria-live="polite"></p>
+
+                    <button id="submit-button" class="primary-button" type="submit">
+                        <span class="button-label">登录</span>
+                        <span class="button-spinner" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                <div class="auth-meta">
+                    <span class="meta-dot" aria-hidden="true"></span>
+                    <span>v0.1</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <noscript>
+        <p class="noscript-message">请启用 JavaScript 后继续。</p>
+    </noscript>
+
+    <script src="./js/api.js" defer></script>
+    <script src="./js/auth.js" defer></script>
+</body>
+</html>
