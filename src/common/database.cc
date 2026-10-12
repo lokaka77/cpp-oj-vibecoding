@@ -881,3 +881,45 @@ bool Database::get_submission_result(std::uint64_t submission_id,
     verdict = verdict_null ? "" : std::string(verdict_buffer, verdict_length);
     return true;
 }
+
+bool Database::list_solved_problem_ids(
+    std::uint64_t user_id,
+    std::vector<std::uint64_t>& problem_ids) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "SELECT DISTINCT problem_id FROM submissions "
+        "WHERE user_id = ? AND status = 'done' AND verdict = 'AC' "
+        "ORDER BY problem_id ASC");
+    if (!statement) {
+        return false;
+    }
+
+    MYSQL_BIND parameter{};
+    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    parameter.buffer = &user_id;
+    if (mysql_stmt_bind_param(statement.get(), &parameter) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    std::uint64_t problem_id = 0;
+    MYSQL_BIND result{};
+    result.buffer_type = MYSQL_TYPE_LONGLONG;
+    result.buffer = &problem_id;
+    if (mysql_stmt_bind_result(statement.get(), &result) != 0) {
+        return false;
+    }
+
+    int fetch_result = 0;
+    while ((fetch_result = mysql_stmt_fetch(statement.get())) == 0) {
+        problem_ids.push_back(problem_id);
+    }
+
+    return fetch_result == MYSQL_NO_DATA;
+}

@@ -693,6 +693,9 @@ a:focus-visible {
 }
 
 .problem-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     min-width: 0;
 }
 
@@ -704,6 +707,8 @@ a:focus-visible {
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+    flex: 1;
 }
 
 .problem-status {
@@ -720,6 +725,36 @@ a:focus-visible {
     border-radius: 50%;
     background: var(--accent);
     content: "";
+}
+
+.problem-status.is-solved {
+    color: var(--warning);
+}
+
+.problem-status.is-solved::before {
+    background: var(--warning);
+    box-shadow: 0 0 0 3px rgba(242, 184, 75, 0.12);
+}
+
+.problem-item.is-solved {
+    background: rgba(242, 184, 75, 0.055);
+    box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.problem-item.is-solved:hover {
+    background: rgba(242, 184, 75, 0.1);
+}
+
+.solved-badge {
+    flex-shrink: 0;
+    padding: 3px 7px;
+    border: 1px solid rgba(242, 184, 75, 0.55);
+    border-radius: 4px;
+    background: rgba(242, 184, 75, 0.14);
+    color: var(--warning);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .problem-action {

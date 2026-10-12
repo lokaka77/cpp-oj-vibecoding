@@ -282,6 +282,35 @@ Set-Cookie: session_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
 | --- | --- | --- |
 | `500` | `INTERNAL_ERROR` | 题目列表读取失败 |
 
+### `GET /api/problems/solved`
+
+作用：获取当前登录用户已经通过（获得过 `AC`）的题目 ID 列表。
+
+访问权限：需要登录。
+
+请求参数：无。
+
+成功响应 `200`：
+
+```json
+{
+  "problem_ids": [1, 3]
+}
+```
+
+说明：
+
+- 只返回 `status = done` 且 `verdict = AC` 的提交对应题目。
+- 同一个题目多次 AC 只返回一次。
+- 用于题目列表页显示“已通过”标记。
+
+可能的错误：
+
+| 状态码 | code | 说明 |
+| --- | --- | --- |
+| `401` | `NOT_AUTHENTICATED` | 未登录 |
+| `500` | `INTERNAL_ERROR` | 已通过题目读取失败 |
+
 ### `GET /api/problems/{id}`
 
 作用：获取题目详情和普通用户可见的样例测试点。

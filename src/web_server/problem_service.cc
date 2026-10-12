@@ -29,6 +29,29 @@ void register_problem_routes(httplib::Server& server,
         send_json(response, 200, problem_list_json(problems));
     });
 
+    server.Get("/api/problems/solved",
+               [&](const httplib::Request& request,
+                   httplib::Response& response) {
+        AuthUser user;
+        if (!require_authenticated(request, response, database, sessions,
+                                   user)) {
+            return;
+        }
+
+        std::vector<std::uint64_t> problem_ids;
+        if (!database.list_solved_problem_ids(user.id, problem_ids)) {
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load solved problems");
+            return;
+        }
+
+        nlohmann::json items = nlohmann::json::array();
+        for (std::uint64_t problem_id : problem_ids) {
+            items.push_back(problem_id);
+        }
+        send_json(response, 200, {{"problem_ids", items}});
+    });
+
     server.Get(R"(/api/problems/(\d+))",
                [&](const httplib::Request& request,
                    httplib::Response& response) {

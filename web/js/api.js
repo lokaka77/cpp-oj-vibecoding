@@ -70,6 +70,9 @@
         listProblems: function () {
             return request("/api/problems");
         },
+        listSolvedProblems: function () {
+            return request("/api/problems/solved");
+        },
         getProblem: function (problemId) {
             return request("/api/problems/" + encodeURIComponent(problemId));
         },

@@ -58,6 +58,8 @@ public:
     bool get_submission_result(std::uint64_t submission_id,
                                std::string& status,
                                std::string& verdict);
+    bool list_solved_problem_ids(std::uint64_t user_id,
+                                 std::vector<std::uint64_t>& problem_ids);
 
 private:
     void* mysql_ = nullptr;

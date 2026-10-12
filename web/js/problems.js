@@ -37,7 +37,8 @@
             problems: [],
             filtered: [],
             query: "",
-            loading: false
+            loading: false,
+            solvedIds: new Set()
         };
 
         if (window.CodeHunterBackground) {
@@ -74,9 +75,21 @@
             heading.textContent = problem.title;
             title.appendChild(heading);
 
+            const solved = state.solvedIds.has(problem.id);
+            if (solved) {
+                const badge = document.createElement("span");
+                badge.className = "solved-badge";
+                badge.textContent = "AC";
+                badge.setAttribute("aria-label", "已通过");
+                title.appendChild(badge);
+            }
+
             const status = document.createElement("span");
             status.className = "problem-status";
-            status.textContent = "可作答";
+            status.textContent = solved ? "已通过" : "可作答";
+            status.classList.toggle("is-solved", solved);
+
+            item.classList.toggle("is-solved", solved);
 
             const action = document.createElement("a");
             action.className = "problem-action";
@@ -146,6 +159,17 @@
             }
         }
 
+        async function loadSolvedProblems() {
+            try {
+                const data = await window.OJApi.listSolvedProblems();
+                state.solvedIds = new Set(
+                    data && data.problem_ids ? data.problem_ids : []
+                );
+            } catch (error) {
+                state.solvedIds = new Set();
+            }
+        }
+
         async function checkAuthentication() {
             try {
                 const user = await window.OJApi.me();
@@ -189,8 +213,9 @@
             }
         });
 
-        checkAuthentication().then(function (authenticated) {
+        checkAuthentication().then(async function (authenticated) {
             if (authenticated) {
+                await loadSolvedProblems();
                 loadProblems();
             }
         });

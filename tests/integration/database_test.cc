@@ -4,6 +4,7 @@
 
 #include <mysql/mysql.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <ctime>
 #include <memory>
@@ -215,4 +216,34 @@ TEST_F(DatabaseIntegrationTest, WritesAllSupportedVerdicts) {
         EXPECT_EQ(status, "done");
         EXPECT_EQ(stored_verdict, expected_verdict);
     }
+}
+
+TEST_F(DatabaseIntegrationTest, ListsSolvedProblemIdsForUser) {
+    const std::string username = "it_solved_" + unique_suffix();
+    const std::string title = "IT Solved Problem " + unique_suffix();
+
+    ASSERT_TRUE(database_.insert_user(username, "hash", "user"));
+    defer_cleanup("DELETE FROM users WHERE username='" + username + "'");
+
+    AuthUser user;
+    ASSERT_TRUE(database_.find_user_by_username(username, user));
+
+    ASSERT_TRUE(execute(
+        "INSERT INTO problems (title, description) VALUES ('" + title +
+        "', 'solved list integration test')"));
+    const std::uint64_t problem_id = mysql_insert_id(raw_.get());
+    defer_cleanup("DELETE FROM problems WHERE id=" +
+                  std::to_string(problem_id));
+
+    std::uint64_t submission_id = 0;
+    ASSERT_TRUE(database_.insert_pending_submission(
+        user.id, problem_id, "int main() { return 0; }", submission_id));
+
+    std::string error;
+    ASSERT_TRUE(database_.finish_submission(submission_id, "AC", error));
+
+    std::vector<std::uint64_t> solved_ids;
+    ASSERT_TRUE(database_.list_solved_problem_ids(user.id, solved_ids));
+    EXPECT_NE(std::find(solved_ids.begin(), solved_ids.end(), problem_id),
+              solved_ids.end());
 }
