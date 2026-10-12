@@ -66,6 +66,9 @@
         },
         me: function () {
             return request("/api/auth/me");
+        },
+        listProblems: function () {
+            return request("/api/problems");
         }
     };
 })();
