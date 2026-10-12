@@ -65,7 +65,8 @@
         const state = {
             problemId: problemId,
             busy: false,
-            draftKey: problemId ? "codehunter:problem:" + problemId : ""
+            userId: null,
+            draftKey: ""
         };
 
         if (window.CodeHunterBackground) {
@@ -205,6 +206,21 @@
             try {
                 const user = await window.OJApi.me();
                 elements.userName.textContent = user.username;
+                state.userId = user.id;
+                state.draftKey =
+                    "codehunter:user:" + state.userId +
+                    ":problem:" + state.problemId;
+
+                try {
+                    window.localStorage.removeItem(
+                        "codehunter:problem:" + state.problemId
+                    );
+                } catch (error) {
+                    /* Ignore storage cleanup failures. */
+                }
+
+                elements.editor.value = loadDraft();
+                updateLineNumbers();
 
                 if (user.role === "admin") {
                     elements.userRole.textContent = "管理员";
@@ -293,7 +309,7 @@
             }
         }
 
-        elements.editor.value = loadDraft();
+        elements.editor.value = DEFAULT_CODE;
         updateLineNumbers();
 
         elements.editor.addEventListener("input", function () {
