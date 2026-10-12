@@ -1,5 +1,6 @@
 #include "sample_runner.h"
 
+#include "compiler.h"
 #include "logging.h"
 
 #include <chrono>
@@ -78,11 +79,10 @@ SampleRunResult SampleRunner::run(const std::string& code,
 
         write_file(source, code);
 
-        std::string compile_command =
-            config_.compiler + " -std=c++17 " + source.string() +
-            " -o " + executable.string();
-
-        if (std::system(compile_command.c_str()) != 0) {
+        Compiler compiler(config_);
+        CompileResult compile_result = compiler.compile(source, executable);
+        if (!compile_result.success) {
+            log_warning("Compilation failed: " + compile_result.diagnostics);
             return {false, "CE", "编译错误"};
         }
 

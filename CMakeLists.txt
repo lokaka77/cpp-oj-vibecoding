@@ -34,6 +34,7 @@ target_link_libraries(oj_common PUBLIC
 )
 
 add_executable(web_server
+    src/judge/compiler.cc
     src/judge/sample_runner.cc
     src/web_server/admin_service.cc
     src/web_server/auth_middleware.cc
@@ -60,6 +61,7 @@ target_link_libraries(web_server PRIVATE
 enable_testing()
 
 add_executable(oj_tests
+    tests/unit/compiler_test.cc
     tests/unit/config_test.cc
     tests/unit/error_response_test.cc
     tests/unit/judge_worker_test.cc
@@ -68,6 +70,7 @@ add_executable(oj_tests
     tests/unit/problem_service_test.cc
     tests/unit/sample_runner_test.cc
     tests/unit/session_test.cc
+    src/judge/compiler.cc
     src/judge/sample_runner.cc
     src/judge/judge_worker.cc
     src/web_server/session.cc
@@ -112,6 +115,7 @@ target_link_libraries(database_integration_tests PRIVATE
 add_test(NAME database_integration_tests COMMAND database_integration_tests)
 
 add_executable(judge_worker
+    src/judge/compiler.cc
     src/judge/main.cpp
     src/judge/judge_worker.cc
     src/judge/sample_runner.cc
