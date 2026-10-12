@@ -40,6 +40,7 @@
             userName: document.getElementById("user-name"),
             userRole: document.getElementById("user-role"),
             adminNav: document.getElementById("admin-nav-link"),
+            adminUsersNav: document.getElementById("admin-users-nav-link"),
             logoutButton: document.getElementById("logout-button"),
             meta: document.getElementById("problem-meta"),
             loading: document.getElementById("problem-loading"),
@@ -226,6 +227,7 @@
                     elements.userRole.textContent = "管理员";
                     elements.userRole.hidden = false;
                     elements.adminNav.hidden = false;
+                    elements.adminUsersNav.hidden = false;
                 }
 
                 return true;

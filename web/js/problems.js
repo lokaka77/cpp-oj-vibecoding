@@ -21,6 +21,7 @@
             userName: document.getElementById("user-name"),
             userRole: document.getElementById("user-role"),
             adminNav: document.getElementById("admin-nav-link"),
+            adminUsersNav: document.getElementById("admin-users-nav-link"),
             logoutButton: document.getElementById("logout-button"),
             search: document.getElementById("problem-search"),
             count: document.getElementById("problem-count"),
@@ -187,6 +188,7 @@
                     elements.userRole.textContent = "管理员";
                     elements.userRole.hidden = false;
                     elements.adminNav.hidden = false;
+                    elements.adminUsersNav.hidden = false;
                 }
 
                 return true;
