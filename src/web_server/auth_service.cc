@@ -29,33 +29,37 @@ void register_auth_routes(httplib::Server& server,
                                           httplib::Response& response) {
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         std::string username = body.value("username", "");
         std::string password = body.value("password", "");
         if (username.empty() || password.empty()) {
-            send_json(response, 400, {{"error", "username and password are required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "username and password are required");
             return;
         }
 
         AuthUser existing;
         if (database.find_user_by_username(username, existing)) {
-            send_json(response, 409, {{"error", "username already exists"}});
+            send_error(response, 409, "USERNAME_EXISTS",
+                       "username already exists");
             return;
         }
 
         std::string hash = hash_password(password);
         if (hash.empty() ||
             !database.insert_user(username, hash, "user")) {
-            send_json(response, 500, {{"error", "failed to create user"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to create user");
             return;
         }
 
         AuthUser created;
         if (!database.find_user_by_username(username, created)) {
-            send_json(response, 500, {{"error", "failed to load created user"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load created user");
             return;
         }
 
@@ -69,7 +73,7 @@ void register_auth_routes(httplib::Server& server,
                                        httplib::Response& response) {
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
@@ -78,13 +82,15 @@ void register_auth_routes(httplib::Server& server,
         AuthUser user;
         if (!database.find_user_by_username(username, user) ||
             !verify_password(user.password_hash, password)) {
-            send_json(response, 401, {{"error", "invalid username or password"}});
+            send_error(response, 401, "INVALID_CREDENTIALS",
+                       "invalid username or password");
             return;
         }
 
         std::string token = sessions.create(user.id);
         if (token.empty()) {
-            send_json(response, 500, {{"error", "failed to create session"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to create session");
             return;
         }
 

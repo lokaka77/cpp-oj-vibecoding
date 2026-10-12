@@ -35,7 +35,8 @@ void register_admin_problem_routes(httplib::Server& server,
 
         std::vector<ProblemSummary> problems;
         if (!database.list_problems(problems)) {
-            send_json(response, 500, {{"error", "failed to load problems"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load problems");
             return;
         }
 
@@ -55,20 +56,22 @@ void register_admin_problem_routes(httplib::Server& server,
 
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         std::string title = body.value("title", "");
         std::string description = body.value("description", "");
         if (title.empty()) {
-            send_json(response, 400, {{"error", "title is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "title is required");
             return;
         }
 
         std::uint64_t problem_id = 0;
         if (!database.insert_problem(title, description, problem_id)) {
-            send_json(response, 500, {{"error", "failed to create problem"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to create problem");
             return;
         }
 
@@ -85,26 +88,29 @@ void register_admin_problem_routes(httplib::Server& server,
 
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         std::string title = body.value("title", "");
         std::string description = body.value("description", "");
         if (title.empty()) {
-            send_json(response, 400, {{"error", "title is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "title is required");
             return;
         }
 
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
         Problem existing;
         if (!database.find_problem_by_id(problem_id, existing)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         if (!database.update_problem(problem_id, title, description)) {
-            send_json(response, 500, {{"error", "failed to update problem"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to update problem");
             return;
         }
 
@@ -121,12 +127,14 @@ void register_admin_problem_routes(httplib::Server& server,
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
         Problem existing;
         if (!database.find_problem_by_id(problem_id, existing)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         if (!database.delete_problem(problem_id)) {
-            send_json(response, 500, {{"error", "failed to delete problem"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to delete problem");
             return;
         }
 
@@ -143,27 +151,28 @@ void register_admin_problem_routes(httplib::Server& server,
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
         Problem existing;
         if (!database.find_problem_by_id(problem_id, existing)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         if (!body.contains("test_cases") ||
             !body["test_cases"].is_array()) {
-            send_json(response, 400,
-                      {{"error", "test_cases array is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "test_cases array is required");
             return;
         }
 
         const nlohmann::json& items = body["test_cases"];
         if (items.empty() || items.size() > 5) {
-            send_json(response, 400,
-                      {{"error", "test case count must be between 1 and 5"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "test case count must be between 1 and 5");
             return;
         }
 
@@ -175,9 +184,9 @@ void register_admin_problem_routes(httplib::Server& server,
             if (!item.is_object() ||
                 !item.contains("input") ||
                 !item.contains("expected_output")) {
-                send_json(response, 400,
-                          {{"error",
-                            "each test case requires input and expected_output"}});
+                send_error(
+                    response, 400, "VALIDATION_ERROR",
+                    "each test case requires input and expected_output");
                 return;
             }
 
@@ -193,16 +202,15 @@ void register_admin_problem_routes(httplib::Server& server,
         }
 
         if (!has_sample) {
-            send_json(response, 400,
-                      {{"error", "at least one sample test case is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "at least one sample test case is required");
             return;
         }
 
         std::string error;
         if (!database.replace_test_cases(problem_id, test_cases, error)) {
-            send_json(response, 500,
-                      {{"error", "failed to import test cases"},
-                       {"detail", error}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to import test cases", {{"detail", error}});
             return;
         }
 

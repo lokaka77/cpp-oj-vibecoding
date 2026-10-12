@@ -11,12 +11,13 @@ bool require_authenticated(const httplib::Request& request,
                            AuthUser& user) {
     std::uint64_t user_id = 0;
     if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
-        send_json(response, 401, {{"error", "not authenticated"}});
+        send_error(response, 401, "NOT_AUTHENTICATED",
+                   "not authenticated");
         return false;
     }
 
     if (!database.find_user_by_id(user_id, user)) {
-        send_json(response, 401, {{"error", "user not found"}});
+        send_error(response, 401, "USER_NOT_FOUND", "user not found");
         return false;
     }
 
@@ -33,8 +34,8 @@ bool require_admin(const httplib::Request& request,
     }
 
     if (user.role != "admin") {
-        send_json(response, 403,
-                  {{"error", "admin permission required"}});
+        send_error(response, 403, "ADMIN_REQUIRED",
+                   "admin permission required");
         return false;
     }
 

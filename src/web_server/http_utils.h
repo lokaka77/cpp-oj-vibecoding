@@ -13,6 +13,26 @@ inline void send_json(httplib::Response& response,
     response.set_content(body.dump(), "application/json");
 }
 
+inline void send_error(httplib::Response& response,
+                       int status,
+                       const std::string& code,
+                       const std::string& message) {
+    send_json(response, status,
+              {{"error", {{"code", code}, {"message", message}}}});
+}
+
+inline void send_error(httplib::Response& response,
+                       int status,
+                       const std::string& code,
+                       const std::string& message,
+                       const nlohmann::json& details) {
+    send_json(response, status,
+              {{"error",
+                {{"code", code},
+                 {"message", message},
+                 {"details", details}}}});
+}
+
 inline bool parse_json_body(const httplib::Request& request,
                             nlohmann::json& body) {
     try {

@@ -18,7 +18,8 @@ void register_problem_routes(httplib::Server& server,
                                     httplib::Response& response) {
         std::vector<ProblemSummary> problems;
         if (!database.list_problems(problems)) {
-            send_json(response, 500, {{"error", "failed to load problems"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load problems");
             return;
         }
 
@@ -38,13 +39,15 @@ void register_problem_routes(httplib::Server& server,
 
         Problem problem;
         if (!database.find_problem_by_id(problem_id, problem)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         std::vector<TestCase> test_cases;
         if (!database.list_sample_test_cases(problem_id, test_cases)) {
-            send_json(response, 500, {{"error", "failed to load test cases"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load test cases");
             return;
         }
 
@@ -62,26 +65,29 @@ void register_problem_routes(httplib::Server& server,
 
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         std::string code = body.value("code", "");
         if (code.empty()) {
-            send_json(response, 400, {{"error", "code is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "code is required");
             return;
         }
 
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
         Problem problem;
         if (!database.find_problem_by_id(problem_id, problem)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         std::vector<TestCase> samples;
         if (!database.list_sample_test_cases(problem_id, samples)) {
-            send_json(response, 500, {{"error", "failed to load samples"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load samples");
             return;
         }
 
@@ -102,26 +108,29 @@ void register_problem_routes(httplib::Server& server,
 
         nlohmann::json body;
         if (!parse_json_body(request, body)) {
-            send_json(response, 400, {{"error", "invalid JSON body"}});
+            send_error(response, 400, "INVALID_JSON", "invalid JSON body");
             return;
         }
 
         std::string code = body.value("code", "");
         if (code.empty()) {
-            send_json(response, 400, {{"error", "code is required"}});
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "code is required");
             return;
         }
 
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
         Problem problem;
         if (!database.find_problem_by_id(problem_id, problem)) {
-            send_json(response, 404, {{"error", "problem not found"}});
+            send_error(response, 404, "PROBLEM_NOT_FOUND",
+                       "problem not found");
             return;
         }
 
         std::vector<TestCase> test_cases;
         if (!database.list_all_test_cases(problem_id, test_cases)) {
-            send_json(response, 500, {{"error", "failed to load test cases"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to load test cases");
             return;
         }
 
@@ -131,7 +140,8 @@ void register_problem_routes(httplib::Server& server,
         std::uint64_t submission_id = 0;
         if (!database.insert_submission(user.id, problem_id, code,
                                         result.verdict, submission_id)) {
-            send_json(response, 500, {{"error", "failed to save submission"}});
+            send_error(response, 500, "INTERNAL_ERROR",
+                       "failed to save submission");
             return;
         }
 

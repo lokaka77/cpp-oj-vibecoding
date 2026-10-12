@@ -60,6 +60,7 @@ enable_testing()
 
 add_executable(oj_tests
     tests/unit/config_test.cc
+    tests/unit/error_response_test.cc
     tests/unit/logging_test.cc
     tests/unit/password_test.cc
     tests/unit/problem_service_test.cc

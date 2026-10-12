@@ -350,6 +350,31 @@ cppojvibecoding/
 
 所有接口统一返回 JSON，并约定统一的错误响应结构。
 
+统一错误响应格式：
+
+```json
+{
+  "error": {
+    "code": "NOT_AUTHENTICATED",
+    "message": "not authenticated"
+  }
+}
+```
+
+需要补充上下文时可增加 `details` 字段：
+
+```json
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "failed to import test cases",
+    "details": {
+      "detail": "database unavailable"
+    }
+  }
+}
+```
+
 ### 10.1 认证接口
 
 - `POST /api/auth/register`
@@ -494,7 +519,7 @@ Windows 上资源隔离能力与 Linux 不同，用户代码仍可能尝试制�
 - [x] 实现管理员题目增删改接口
 - [x] 实现管理员测试用例导入接口
 - [x] 实现普通用户与管理员接口鉴权
-- [ ] 实现统一 JSON 错误响应
+- [x] 实现统一 JSON 错误响应
 
 ### 阶段三：独立判题服务
 
