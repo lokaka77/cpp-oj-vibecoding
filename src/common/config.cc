@@ -69,6 +69,10 @@ bool ConfigManager::load(const std::string& path) {
                 config_.judge.time_limit_ms =
                     judge["time_limit_ms"].as<int>();
             }
+            if (judge["memory_limit_mb"]) {
+                config_.judge.memory_limit_mb =
+                    judge["memory_limit_mb"].as<int>();
+            }
         }
 
         if (config_.judge.worker_count < 1 ||
@@ -78,6 +82,10 @@ bool ConfigManager::load(const std::string& path) {
         if (config_.judge.time_limit_ms < 1 ||
             config_.judge.time_limit_ms > 60000) {
             throw std::runtime_error("Invalid judge time limit");
+        }
+        if (config_.judge.memory_limit_mb < 1 ||
+            config_.judge.memory_limit_mb > 4096) {
+            throw std::runtime_error("Invalid judge memory limit");
         }
 
         YAML::Node logging = root["logging"];

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <string>
 
@@ -19,6 +20,7 @@ public:
         const std::filesystem::path& input_file,
         const std::filesystem::path& output_file,
         const std::filesystem::path& error_file,
+        std::size_t memory_limit_mb,
         std::chrono::milliseconds timeout);
 };
 

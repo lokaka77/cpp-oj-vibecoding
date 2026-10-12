@@ -36,6 +36,7 @@ CompileResult Compiler::compile(
         {},
         log_path,
         log_path,
+        0,
         std::chrono::seconds(10));
 
     CompileResult result;

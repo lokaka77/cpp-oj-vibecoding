@@ -37,6 +37,7 @@ TEST(ProcessRunnerTest, RunsProcessAndCapturesOutput) {
         {},
         output,
         error,
+        0,
         std::chrono::seconds(2));
 
     ASSERT_TRUE(result.started);
@@ -59,6 +60,7 @@ TEST(ProcessRunnerTest, TerminatesTimedOutProcess) {
         {},
         output,
         error,
+        0,
         std::chrono::milliseconds(300));
 
     ASSERT_TRUE(result.started);

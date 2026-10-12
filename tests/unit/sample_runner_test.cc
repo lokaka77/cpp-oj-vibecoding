@@ -12,12 +12,14 @@ namespace {
 #define OJ_TEST_COMPILER "g++"
 #endif
 
-SampleRunner make_runner(int time_limit_ms = 1000) {
+SampleRunner make_runner(int time_limit_ms = 1000,
+                         int memory_limit_mb = 128) {
     JudgeConfig config;
     config.compiler = OJ_TEST_COMPILER;
     std::replace(config.compiler.begin(), config.compiler.end(), '/', '\\');
     config.temp_dir = "./judge_test_tmp";
     config.time_limit_ms = time_limit_ms;
+    config.memory_limit_mb = memory_limit_mb;
     return SampleRunner(config);
 }
 
@@ -83,4 +85,18 @@ TEST(SampleRunnerTest, DetectsTimeLimitExceeded) {
     EXPECT_FALSE(result.passed);
     EXPECT_EQ(result.verdict, "TLE");
     EXPECT_EQ(result.message, "运行超时");
+}
+
+TEST(SampleRunnerTest, DetectsMemoryLimitExceeded) {
+    std::string code =
+        "#include <vector>\n"
+        "int main(){std::vector<char> data(256 * 1024 * 1024, 1);"
+        " return data[0];}\n";
+    std::vector<TestCase> samples = {make_sample("", "")};
+
+    SampleRunResult result = make_runner(1000, 32).run(code, samples);
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.verdict, "RE");
+    EXPECT_EQ(result.message, "运行时错误");
 }

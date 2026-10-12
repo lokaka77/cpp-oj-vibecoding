@@ -85,6 +85,7 @@ ProcessResult ProcessRunner::run(
     const std::filesystem::path& input_file,
     const std::filesystem::path& output_file,
     const std::filesystem::path& error_file,
+    std::size_t memory_limit_mb,
     std::chrono::milliseconds timeout) {
     ProcessResult result;
 
@@ -157,6 +158,15 @@ ProcessResult ProcessRunner::run(
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
         limits.BasicLimitInformation.LimitFlags =
             JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if (memory_limit_mb > 0) {
+            const SIZE_T bytes = static_cast<SIZE_T>(memory_limit_mb) *
+                                 1024ULL * 1024ULL;
+            limits.BasicLimitInformation.LimitFlags |=
+                JOB_OBJECT_LIMIT_PROCESS_MEMORY |
+                JOB_OBJECT_LIMIT_JOB_MEMORY;
+            limits.ProcessMemoryLimit = bytes;
+            limits.JobMemoryLimit = bytes;
+        }
         SetInformationJobObject(job,
                                 JobObjectExtendedLimitInformation,
                                 &limits,

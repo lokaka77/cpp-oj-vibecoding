@@ -102,6 +102,7 @@ SampleRunResult SampleRunner::run(const std::string& code,
                 input_file,
                 output_file,
                 error_file,
+                static_cast<std::size_t>(config_.memory_limit_mb),
                 std::chrono::milliseconds(config_.time_limit_ms));
 
             if (!process.started) {

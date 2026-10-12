@@ -15,6 +15,7 @@ struct JudgeConfig {
     std::string temp_dir = "./build/judge_tmp";
     int worker_count = 2;
     int time_limit_ms = 1000;
+    int memory_limit_mb = 128;
 };
 
 struct ServerConfig {
