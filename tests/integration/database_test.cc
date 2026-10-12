@@ -187,3 +187,32 @@ TEST_F(DatabaseIntegrationTest, ClaimsAndFinishesPendingSubmission) {
     EXPECT_EQ(status, "done");
     EXPECT_EQ(verdict, "AC");
 }
+
+TEST_F(DatabaseIntegrationTest, WritesAllSupportedVerdicts) {
+    const std::string title = "IT Verdict Problem " + unique_suffix();
+    ASSERT_TRUE(execute(
+        "INSERT INTO problems (title, description) VALUES ('" + title +
+        "', 'verdict integration test')"));
+
+    const std::uint64_t problem_id = mysql_insert_id(raw_.get());
+    defer_cleanup("DELETE FROM problems WHERE id=" +
+                  std::to_string(problem_id));
+
+    for (const std::string& expected_verdict :
+         {"AC", "WA", "TLE", "RE", "CE"}) {
+        std::uint64_t submission_id = 0;
+        ASSERT_TRUE(database_.insert_pending_submission(
+            1, problem_id, "int main() { return 0; }", submission_id));
+
+        std::string error;
+        ASSERT_TRUE(database_.finish_submission(
+            submission_id, expected_verdict, error));
+
+        std::string status;
+        std::string stored_verdict;
+        ASSERT_TRUE(database_.get_submission_result(
+            submission_id, status, stored_verdict));
+        EXPECT_EQ(status, "done");
+        EXPECT_EQ(stored_verdict, expected_verdict);
+    }
+}

@@ -51,6 +51,7 @@ TEST(SampleRunnerTest, PassesCorrectSample) {
     SampleRunResult result = make_runner().run(code, samples);
 
     EXPECT_TRUE(result.passed);
+    EXPECT_EQ(result.verdict, "AC");
     EXPECT_EQ(result.message, "样例通过");
 }
 
@@ -63,6 +64,7 @@ TEST(SampleRunnerTest, DetectsWrongOutput) {
     SampleRunResult result = make_runner().run(code, samples);
 
     EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.verdict, "WA");
     EXPECT_EQ(result.message, "样例未通过");
 }
 
@@ -72,7 +74,19 @@ TEST(SampleRunnerTest, DetectsCompileError) {
     SampleRunResult result = make_runner().run(code, {});
 
     EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.verdict, "CE");
     EXPECT_EQ(result.message, "编译错误");
+}
+
+TEST(SampleRunnerTest, DetectsRuntimeError) {
+    std::string code = "int main(){return 7;}\n";
+    std::vector<TestCase> samples = {make_sample("", "")};
+
+    SampleRunResult result = make_runner().run(code, samples);
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.verdict, "RE");
+    EXPECT_EQ(result.message, "运行时错误");
 }
 
 TEST(SampleRunnerTest, DetectsTimeLimitExceeded) {
