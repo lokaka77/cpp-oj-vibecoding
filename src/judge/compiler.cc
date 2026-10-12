@@ -1,6 +1,8 @@
 #include "compiler.h"
 
-#include <cstdlib>
+#include "process_runner.h"
+
+#include <chrono>
 #include <fstream>
 #include <sstream>
 
@@ -24,12 +26,21 @@ CompileResult Compiler::compile(
     const std::filesystem::path log_path =
         executable.parent_path() / "compile.log";
 
-    std::string command =
-        config_.compiler + " -std=c++17 " + source.string() +
-        " -o " + executable.string() + " > " + log_path.string() + " 2>&1";
+    const std::wstring arguments =
+        L"-std=c++17 " + quote_windows_argument(source.wstring()) +
+        L" -o " + quote_windows_argument(executable.wstring());
+
+    ProcessResult process = ProcessRunner::run(
+        std::filesystem::path(config_.compiler),
+        arguments,
+        {},
+        log_path,
+        log_path,
+        std::chrono::seconds(10));
 
     CompileResult result;
-    result.success = std::system(command.c_str()) == 0;
+    result.success = process.started && !process.timed_out &&
+                     process.exit_code == 0;
     result.diagnostics = read_file(log_path);
     return result;
 }

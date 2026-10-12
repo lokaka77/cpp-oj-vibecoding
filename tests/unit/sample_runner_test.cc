@@ -71,3 +71,15 @@ TEST(SampleRunnerTest, DetectsCompileError) {
     EXPECT_FALSE(result.passed);
     EXPECT_EQ(result.message, "编译错误");
 }
+
+TEST(SampleRunnerTest, DetectsTimeLimitExceeded) {
+    std::string code =
+        "int main(){while(true){}}\n";
+    std::vector<TestCase> samples = {make_sample("", "")};
+
+    SampleRunResult result = make_runner().run(code, samples);
+
+    EXPECT_FALSE(result.passed);
+    EXPECT_EQ(result.verdict, "TLE");
+    EXPECT_EQ(result.message, "运行超时");
+}

@@ -2,9 +2,9 @@
 
 #include "compiler.h"
 #include "logging.h"
+#include "process_runner.h"
 
 #include <chrono>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -91,15 +91,27 @@ SampleRunResult SampleRunner::run(const std::string& code,
                 temp_dir.path() / ("input_" + std::to_string(index) + ".txt");
             std::filesystem::path output_file =
                 temp_dir.path() / ("output_" + std::to_string(index) + ".txt");
+            std::filesystem::path error_file =
+                temp_dir.path() / ("error_" + std::to_string(index) + ".txt");
 
             write_file(input_file, samples[index].input_data);
 
-            std::string run_command =
-                executable.string() + " < " + input_file.string() +
-                " > " + output_file.string();
+            ProcessResult process = ProcessRunner::run(
+                executable,
+                L"",
+                input_file,
+                output_file,
+                error_file,
+                std::chrono::milliseconds(1000));
 
-            if (std::system(run_command.c_str()) != 0) {
-                log_error("Sample run command failed: " + run_command);
+            if (!process.started) {
+                log_error("Failed to start sample process: " + process.error);
+                return {false, "RE", "运行时错误"};
+            }
+            if (process.timed_out) {
+                return {false, "TLE", "运行超时"};
+            }
+            if (process.exit_code != 0) {
                 return {false, "RE", "运行时错误"};
             }
 
