@@ -1,5 +1,7 @@
 #include "admin_service.h"
 
+#include "auth_middleware.h"
+#include "http_utils.h"
 #include "oj/models.h"
 
 #include <nlohmann/json.hpp>
@@ -11,72 +13,12 @@
 
 namespace {
 
-void send_json(httplib::Response& response,
-               int status,
-               const nlohmann::json& body) {
-    response.status = status;
-    response.set_content(body.dump(), "application/json");
-}
-
-std::string cookie_value(const httplib::Request& request,
-                         const std::string& name) {
-    std::string header = request.get_header_value("Cookie");
-    if (header.empty()) {
-        return {};
-    }
-
-    std::size_t position = 0;
-    while (position < header.size()) {
-        std::size_t end = header.find(';', position);
-        if (end == std::string::npos) {
-            end = header.size();
-        }
-
-        std::string part = header.substr(position, end - position);
-        std::size_t equals = part.find('=');
-        if (equals != std::string::npos &&
-            part.substr(0, equals) == name) {
-            return part.substr(equals + 1);
-        }
-
-        position = end + 1;
-    }
-
-    return {};
-}
-
-bool require_admin(const httplib::Request& request,
-                   httplib::Response& response,
-                   Database& database,
-                   SessionManager& sessions) {
-    std::uint64_t user_id = 0;
-    if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
-        send_json(response, 401, {{"error", "not authenticated"}});
-        return false;
-    }
-
-    AuthUser user;
-    if (!database.find_user_by_id(user_id, user)) {
-        send_json(response, 401, {{"error", "user not found"}});
-        return false;
-    }
-
-    if (user.role != "admin") {
-        send_json(response, 403, {{"error", "admin permission required"}});
-        return false;
-    }
-
-    return true;
-}
-
-bool parse_json_body(const httplib::Request& request,
-                     nlohmann::json& body) {
-    try {
-        body = nlohmann::json::parse(request.body);
-        return body.is_object();
-    } catch (const std::exception&) {
-        return false;
-    }
+bool require_admin_request(const httplib::Request& request,
+                           httplib::Response& response,
+                           Database& database,
+                           SessionManager& sessions) {
+    AuthUser admin;
+    return require_admin(request, response, database, sessions, admin);
 }
 
 }  // namespace
@@ -87,7 +29,7 @@ void register_admin_problem_routes(httplib::Server& server,
     server.Get("/api/admin/problems",
                [&](const httplib::Request& request,
                    httplib::Response& response) {
-        if (!require_admin(request, response, database, sessions)) {
+        if (!require_admin_request(request, response, database, sessions)) {
             return;
         }
 
@@ -107,7 +49,7 @@ void register_admin_problem_routes(httplib::Server& server,
     server.Post("/api/admin/problems",
                 [&](const httplib::Request& request,
                     httplib::Response& response) {
-        if (!require_admin(request, response, database, sessions)) {
+        if (!require_admin_request(request, response, database, sessions)) {
             return;
         }
 
@@ -137,7 +79,7 @@ void register_admin_problem_routes(httplib::Server& server,
     server.Put(R"(/api/admin/problems/(\d+))",
                [&](const httplib::Request& request,
                    httplib::Response& response) {
-        if (!require_admin(request, response, database, sessions)) {
+        if (!require_admin_request(request, response, database, sessions)) {
             return;
         }
 
@@ -172,7 +114,7 @@ void register_admin_problem_routes(httplib::Server& server,
     server.Delete(R"(/api/admin/problems/(\d+))",
                   [&](const httplib::Request& request,
                       httplib::Response& response) {
-        if (!require_admin(request, response, database, sessions)) {
+        if (!require_admin_request(request, response, database, sessions)) {
             return;
         }
 
@@ -194,7 +136,7 @@ void register_admin_problem_routes(httplib::Server& server,
     server.Post(R"(/api/admin/problems/(\d+)/testcases)",
                 [&](const httplib::Request& request,
                     httplib::Response& response) {
-        if (!require_admin(request, response, database, sessions)) {
+        if (!require_admin_request(request, response, database, sessions)) {
             return;
         }
 

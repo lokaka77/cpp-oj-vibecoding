@@ -1,5 +1,7 @@
 #include "problem_service.h"
 
+#include "auth_middleware.h"
+#include "http_utils.h"
 #include "sample_runner.h"
 
 #include <nlohmann/json.hpp>
@@ -7,44 +9,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-
-namespace {
-
-void send_json(httplib::Response& response,
-               int status,
-               const nlohmann::json& body) {
-    response.status = status;
-    response.set_content(body.dump(), "application/json");
-}
-
-std::string cookie_value(const httplib::Request& request,
-                         const std::string& name) {
-    std::string header = request.get_header_value("Cookie");
-    if (header.empty()) {
-        return {};
-    }
-
-    std::size_t position = 0;
-    while (position < header.size()) {
-        std::size_t end = header.find(';', position);
-        if (end == std::string::npos) {
-            end = header.size();
-        }
-
-        std::string part = header.substr(position, end - position);
-        std::size_t equals = part.find('=');
-        if (equals != std::string::npos &&
-            part.substr(0, equals) == name) {
-            return part.substr(equals + 1);
-        }
-
-        position = end + 1;
-    }
-
-    return {};
-}
-
-}  // namespace
 
 void register_problem_routes(httplib::Server& server,
                              Database& database,
@@ -64,6 +28,12 @@ void register_problem_routes(httplib::Server& server,
     server.Get(R"(/api/problems/(\d+))",
                [&](const httplib::Request& request,
                    httplib::Response& response) {
+        AuthUser user;
+        if (!require_authenticated(request, response, database, sessions,
+                                   user)) {
+            return;
+        }
+
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
 
         Problem problem;
@@ -84,16 +54,14 @@ void register_problem_routes(httplib::Server& server,
     server.Post(R"(/api/problems/(\d+)/run)",
                 [&](const httplib::Request& request,
                     httplib::Response& response) {
-        std::uint64_t user_id = 0;
-        if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
-            send_json(response, 401, {{"error", "not authenticated"}});
+        AuthUser user;
+        if (!require_authenticated(request, response, database, sessions,
+                                   user)) {
             return;
         }
 
         nlohmann::json body;
-        try {
-            body = nlohmann::json::parse(request.body);
-        } catch (const std::exception&) {
+        if (!parse_json_body(request, body)) {
             send_json(response, 400, {{"error", "invalid JSON body"}});
             return;
         }
@@ -126,16 +94,14 @@ void register_problem_routes(httplib::Server& server,
     server.Post(R"(/api/problems/(\d+)/submit)",
                 [&](const httplib::Request& request,
                     httplib::Response& response) {
-        std::uint64_t user_id = 0;
-        if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
-            send_json(response, 401, {{"error", "not authenticated"}});
+        AuthUser user;
+        if (!require_authenticated(request, response, database, sessions,
+                                   user)) {
             return;
         }
 
         nlohmann::json body;
-        try {
-            body = nlohmann::json::parse(request.body);
-        } catch (const std::exception&) {
+        if (!parse_json_body(request, body)) {
             send_json(response, 400, {{"error", "invalid JSON body"}});
             return;
         }
@@ -163,7 +129,7 @@ void register_problem_routes(httplib::Server& server,
         SampleRunResult result = runner.run(code, test_cases);
 
         std::uint64_t submission_id = 0;
-        if (!database.insert_submission(user_id, problem_id, code,
+        if (!database.insert_submission(user.id, problem_id, code,
                                         result.verdict, submission_id)) {
             send_json(response, 500, {{"error", "failed to save submission"}});
             return;

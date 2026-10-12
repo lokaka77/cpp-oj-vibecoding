@@ -1,64 +1,12 @@
 #include "auth_service.h"
 
-#include "logging.h"
+#include "auth_middleware.h"
+#include "http_utils.h"
 #include "password.h"
 
 #include <nlohmann/json.hpp>
 
-#include <string>
-
 namespace {
-
-void send_json(httplib::Response& response,
-               int status,
-               const nlohmann::json& body) {
-    response.status = status;
-    response.set_content(body.dump(), "application/json");
-}
-
-bool parse_json_body(const httplib::Request& request,
-                     nlohmann::json& body) {
-    try {
-        if (request.body.empty()) {
-            log_warning("auth request body is empty");
-            return false;
-        }
-        body = nlohmann::json::parse(request.body);
-        return body.is_object();
-    } catch (const std::exception& error) {
-        log_warning(std::string("JSON parse failed: ") + error.what());
-        return false;
-    }
-}
-
-std::string cookie_value(const httplib::Request& request,
-                         const std::string& name) {
-    std::string cookie_header = request.get_header_value("Cookie");
-    if (cookie_header.empty()) {
-        return {};
-    }
-
-    std::size_t position = 0;
-    while (position < cookie_header.size()) {
-        std::size_t end = cookie_header.find(';', position);
-        if (end == std::string::npos) {
-            end = cookie_header.size();
-        }
-
-        std::string part = cookie_header.substr(position, end - position);
-        std::size_t equals = part.find('=');
-        if (equals != std::string::npos) {
-            std::string key = part.substr(0, equals);
-            if (key == name) {
-                return part.substr(equals + 1);
-            }
-        }
-
-        position = end + 1;
-    }
-
-    return {};
-}
 
 void set_session_cookie(httplib::Response& response,
                         const std::string& token) {
@@ -157,15 +105,9 @@ void register_auth_routes(httplib::Server& server,
 
     server.Get("/api/auth/me", [&](const httplib::Request& request,
                                    httplib::Response& response) {
-        std::uint64_t user_id = 0;
-        if (!sessions.get(cookie_value(request, "session_id"), user_id)) {
-            send_json(response, 401, {{"error", "not authenticated"}});
-            return;
-        }
-
         AuthUser user;
-        if (!database.find_user_by_id(user_id, user)) {
-            send_json(response, 401, {{"error", "user not found"}});
+        if (!require_authenticated(request, response, database, sessions,
+                                   user)) {
             return;
         }
 

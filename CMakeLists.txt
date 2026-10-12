@@ -35,6 +35,7 @@ target_link_libraries(oj_common PUBLIC
 add_executable(web_server
     src/judge/sample_runner.cc
     src/web_server/admin_service.cc
+    src/web_server/auth_middleware.cc
     src/web_server/auth_service.cc
     src/web_server/problem_service.cc
     src/web_server/session.cc
