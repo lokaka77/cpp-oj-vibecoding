@@ -1,4 +1,5 @@
 #include "http_service.h"
+#include "admin_service.h"
 #include "auth_service.h"
 #include "database.h"
 #include "logging.h"
@@ -32,6 +33,7 @@ void run_http_server(const ServerConfig& config) {
     });
 
     register_auth_routes(server, database, sessions);
+    register_admin_problem_routes(server, database, sessions);
     register_problem_routes(server, database, sessions, config.judge);
 
     log_info("HTTP server listening on " + config.listen_address + ":" +

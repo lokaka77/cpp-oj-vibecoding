@@ -37,6 +37,13 @@ public:
                            const std::string& code,
                            const std::string& verdict,
                            std::uint64_t& submission_id);
+    bool insert_problem(const std::string& title,
+                        const std::string& description,
+                        std::uint64_t& problem_id);
+    bool update_problem(std::uint64_t problem_id,
+                        const std::string& title,
+                        const std::string& description);
+    bool delete_problem(std::uint64_t problem_id);
 
 private:
     void* mysql_ = nullptr;

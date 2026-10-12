@@ -464,3 +464,101 @@ bool Database::insert_submission(std::uint64_t user_id,
     submission_id = mysql_stmt_insert_id(statement.get());
     return true;
 }
+
+bool Database::insert_problem(const std::string& title,
+                              const std::string& description,
+                              std::uint64_t& problem_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "INSERT INTO problems (title, description) VALUES (?, ?)");
+    if (!statement) {
+        return false;
+    }
+
+    unsigned long title_length = title.size();
+    unsigned long description_length = description.size();
+
+    MYSQL_BIND parameters[2]{};
+    parameters[0].buffer_type = MYSQL_TYPE_STRING;
+    parameters[0].buffer = const_cast<char*>(title.c_str());
+    parameters[0].buffer_length = title.size();
+    parameters[0].length = &title_length;
+
+    parameters[1].buffer_type = MYSQL_TYPE_STRING;
+    parameters[1].buffer = const_cast<char*>(description.c_str());
+    parameters[1].buffer_length = description.size();
+    parameters[1].length = &description_length;
+
+    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    problem_id = mysql_stmt_insert_id(statement.get());
+    return true;
+}
+
+bool Database::update_problem(std::uint64_t problem_id,
+                              const std::string& title,
+                              const std::string& description) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "UPDATE problems SET title = ?, description = ? WHERE id = ?");
+    if (!statement) {
+        return false;
+    }
+
+    unsigned long title_length = title.size();
+    unsigned long description_length = description.size();
+
+    MYSQL_BIND parameters[3]{};
+    parameters[0].buffer_type = MYSQL_TYPE_STRING;
+    parameters[0].buffer = const_cast<char*>(title.c_str());
+    parameters[0].buffer_length = title.size();
+    parameters[0].length = &title_length;
+
+    parameters[1].buffer_type = MYSQL_TYPE_STRING;
+    parameters[1].buffer = const_cast<char*>(description.c_str());
+    parameters[1].buffer_length = description.size();
+    parameters[1].length = &description_length;
+
+    parameters[2].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[2].buffer = &problem_id;
+
+    return mysql_stmt_bind_param(statement.get(), parameters) == 0 &&
+           mysql_stmt_execute(statement.get()) == 0;
+}
+
+bool Database::delete_problem(std::uint64_t problem_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "DELETE FROM problems WHERE id = ?");
+    if (!statement) {
+        return false;
+    }
+
+    MYSQL_BIND parameter{};
+    parameter.buffer_type = MYSQL_TYPE_LONGLONG;
+    parameter.buffer = &problem_id;
+
+    return mysql_stmt_bind_param(statement.get(), &parameter) == 0 &&
+           mysql_stmt_execute(statement.get()) == 0;
+}
