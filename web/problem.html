@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeHunter - 题目详情</title>
+    <meta name="theme-color" content="#070a0f">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1118'/%3E%3Cpath d='M20 44 32 20l12 24' stroke='%2326d0ce' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body class="app-page">
+    <canvas id="tech-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="app-brand" href="./problems.html" aria-label="CodeHunter 首页">
+                <span class="brand-mark brand-mark-small" aria-hidden="true">C++</span>
+                <span class="app-brand-name">CodeHunter</span>
+            </a>
+
+            <nav class="app-nav" aria-label="主导航">
+                <a class="app-nav-link is-active" href="./problems.html">题库</a>
+                <a id="admin-nav-link" class="app-nav-link" href="./admin.html" hidden>管理</a>
+            </nav>
+
+            <div class="app-user">
+                <span id="user-role" class="role-badge" hidden></span>
+                <span id="user-name" class="user-name">加载中</span>
+                <button id="logout-button" class="ghost-button" type="button">
+                    退出
+                </button>
+            </div>
+        </header>
+
+        <main class="problem-page">
+            <div class="problem-toolbar">
+                <a class="back-link" href="./problems.html">返回题库</a>
+                <span id="problem-meta" class="problem-meta">题目 #---</span>
+            </div>
+
+            <div id="problem-loading" class="loading-state">
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+            </div>
+
+            <div id="problem-error" class="state-message state-message-error" hidden>
+                <p id="problem-error-message">题目加载失败</p>
+                <button id="problem-retry" class="ghost-button" type="button">
+                    重新加载
+                </button>
+            </div>
+
+            <div id="problem-content" class="problem-layout" hidden>
+                <section class="description-panel" aria-labelledby="problem-title">
+                    <header class="problem-header">
+                        <p class="eyebrow">PROBLEM</p>
+                        <h1 id="problem-title">题目</h1>
+                    </header>
+
+                    <article id="problem-description" class="problem-description"></article>
+
+                    <section class="sample-section" aria-labelledby="sample-title">
+                        <h2 id="sample-title">样例测试</h2>
+                        <div id="sample-list" class="sample-list"></div>
+                    </section>
+                </section>
+
+                <section class="workspace-panel" aria-labelledby="workspace-title">
+                    <header class="workspace-header">
+                        <div>
+                            <p class="eyebrow">EDITOR</p>
+                            <h2 id="workspace-title">代码工作区</h2>
+                        </div>
+                        <span class="language-badge">C++17</span>
+                    </header>
+
+                    <div class="editor-shell">
+                        <div id="line-numbers" class="line-numbers" aria-hidden="true">1</div>
+                        <textarea id="code-editor"
+                                  class="code-editor"
+                                  spellcheck="false"
+                                  autocomplete="off"
+                                  autocapitalize="off"
+                                  wrap="off"
+                                  aria-label="C++ 代码编辑器"></textarea>
+                    </div>
+
+                    <div class="editor-actions">
+                        <button id="run-button" class="secondary-button" type="button">
+                            运行样例
+                        </button>
+                        <button id="submit-button" class="primary-button primary-button-compact" type="button">
+                            提交判题
+                        </button>
+                    </div>
+
+                    <div id="result-panel" class="result-panel" role="status" aria-live="polite" hidden>
+                        <span id="result-verdict" class="result-verdict"></span>
+                        <p id="result-message" class="result-message"></p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="./js/api.js" defer></script>
+    <script src="./js/tech-background.js" defer></script>
+    <script src="./js/problem.js" defer></script>
+</body>
+</html>

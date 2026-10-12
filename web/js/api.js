@@ -69,6 +69,67 @@
         },
         listProblems: function () {
             return request("/api/problems");
+        },
+        getProblem: function (problemId) {
+            return request("/api/problems/" + encodeURIComponent(problemId));
+        },
+        runSample: function (problemId, code) {
+            return request(
+                "/api/problems/" + encodeURIComponent(problemId) + "/run",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ code: code })
+                }
+            );
+        },
+        submit: function (problemId, code) {
+            return request(
+                "/api/problems/" + encodeURIComponent(problemId) + "/submit",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ code: code })
+                }
+            );
+        },
+        adminListProblems: function () {
+            return request("/api/admin/problems");
+        },
+        adminCreateProblem: function (title, description) {
+            return request("/api/admin/problems", {
+                method: "POST",
+                body: JSON.stringify({
+                    title: title,
+                    description: description
+                })
+            });
+        },
+        adminUpdateProblem: function (problemId, title, description) {
+            return request(
+                "/api/admin/problems/" + encodeURIComponent(problemId),
+                {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        title: title,
+                        description: description
+                    })
+                }
+            );
+        },
+        adminDeleteProblem: function (problemId) {
+            return request(
+                "/api/admin/problems/" + encodeURIComponent(problemId),
+                { method: "DELETE" }
+            );
+        },
+        adminImportTestCases: function (problemId, testCases) {
+            return request(
+                "/api/admin/problems/" + encodeURIComponent(problemId) +
+                    "/testcases",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ test_cases: testCases })
+                }
+            );
         }
     };
 })();

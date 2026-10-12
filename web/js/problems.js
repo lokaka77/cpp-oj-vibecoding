@@ -20,6 +20,7 @@
         const elements = {
             userName: document.getElementById("user-name"),
             userRole: document.getElementById("user-role"),
+            adminNav: document.getElementById("admin-nav-link"),
             logoutButton: document.getElementById("logout-button"),
             search: document.getElementById("problem-search"),
             count: document.getElementById("problem-count"),
@@ -153,6 +154,7 @@
                 if (user.role === "admin") {
                     elements.userRole.textContent = "管理员";
                     elements.userRole.hidden = false;
+                    elements.adminNav.hidden = false;
                 }
 
                 return true;

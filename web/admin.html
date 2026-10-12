@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeHunter - 题目管理</title>
+    <meta name="theme-color" content="#070a0f">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1118'/%3E%3Cpath d='M20 44 32 20l12 24' stroke='%2326d0ce' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body class="app-page">
+    <canvas id="tech-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="app-brand" href="./problems.html" aria-label="CodeHunter 首页">
+                <span class="brand-mark brand-mark-small" aria-hidden="true">C++</span>
+                <span class="app-brand-name">CodeHunter</span>
+            </a>
+
+            <nav class="app-nav" aria-label="主导航">
+                <a class="app-nav-link" href="./problems.html">题库</a>
+                <a class="app-nav-link is-active" href="./admin.html">管理</a>
+            </nav>
+
+            <div class="app-user">
+                <span id="user-role" class="role-badge" hidden></span>
+                <span id="user-name" class="user-name">加载中</span>
+                <button id="logout-button" class="ghost-button" type="button">
+                    退出
+                </button>
+            </div>
+        </header>
+
+        <main class="admin-page">
+            <header class="page-heading">
+                <div>
+                    <p class="eyebrow">ADMIN CONSOLE</p>
+                    <h1>题目管理</h1>
+                </div>
+                <button id="new-problem-button"
+                        class="primary-button primary-button-inline"
+                        type="button">
+                    新增题目
+                </button>
+            </header>
+
+            <div class="admin-layout">
+                <aside class="admin-list-panel" aria-labelledby="admin-list-title">
+                    <header class="panel-header">
+                        <h2 id="admin-list-title">题目列表</h2>
+                        <span id="admin-problem-count" class="panel-count">0</span>
+                    </header>
+
+                    <div id="admin-list-loading" class="loading-state compact">
+                        <div class="skeleton-row"></div>
+                        <div class="skeleton-row"></div>
+                        <div class="skeleton-row"></div>
+                    </div>
+
+                    <div id="admin-problem-list"
+                         class="admin-problem-list"
+                         role="list"
+                         hidden></div>
+
+                    <div id="admin-list-empty" class="state-message" hidden>
+                        <p>暂无题目</p>
+                    </div>
+                </aside>
+
+                <section class="admin-editor-panel" aria-labelledby="admin-editor-title">
+                    <div id="admin-editor-empty" class="state-message">
+                        <p>选择左侧题目，或点击“新增题目”</p>
+                    </div>
+
+                    <form id="problem-form" class="admin-form" hidden>
+                        <header class="admin-editor-header">
+                            <div>
+                                <p class="eyebrow">PROBLEM</p>
+                                <h2 id="admin-editor-title">编辑题目</h2>
+                            </div>
+                            <span id="admin-problem-id" class="problem-meta"></span>
+                        </header>
+
+                        <div class="admin-form-fields">
+                            <div class="field">
+                                <label for="admin-title">题目标题</label>
+                                <input id="admin-title"
+                                       type="text"
+                                       maxlength="200"
+                                       required>
+                            </div>
+
+                            <div class="field">
+                                <label for="admin-description">题目描述</label>
+                                <textarea id="admin-description"
+                                          rows="10"
+                                          required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="admin-actions">
+                            <button id="save-problem-button"
+                                    class="primary-button primary-button-inline"
+                                    type="submit">
+                                保存题目
+                            </button>
+                            <button id="delete-problem-button"
+                                    class="danger-button"
+                                    type="button"
+                                    hidden>
+                                删除题目
+                            </button>
+                        </div>
+                    </form>
+
+                    <section id="testcase-editor" class="testcase-editor" hidden>
+                        <header class="testcase-header">
+                            <div>
+                                <p class="eyebrow">TEST CASES</p>
+                                <h2>测试用例</h2>
+                            </div>
+                            <button id="add-testcase-button"
+                                    class="ghost-button"
+                                    type="button">
+                                添加用例
+                            </button>
+                        </header>
+
+                        <p class="form-hint">
+                            导入会替换该题现有测试用例，最多 5 组，至少需要一组样例。
+                        </p>
+
+                        <div id="testcase-list" class="testcase-list"></div>
+
+                        <div class="admin-actions">
+                            <button id="import-testcases-button"
+                                    class="secondary-button"
+                                    type="button">
+                                导入测试用例
+                            </button>
+                        </div>
+                    </section>
+
+                    <p id="admin-status"
+                       class="form-status admin-status"
+                       role="status"
+                       aria-live="polite"></p>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+        <form method="dialog">
+            <h2>确认删除题目</h2>
+            <p id="confirm-message">删除后无法恢复。</p>
+            <div class="confirm-actions">
+                <button class="ghost-button" value="cancel">取消</button>
+                <button id="confirm-delete-button"
+                        class="danger-button"
+                        value="confirm">
+                    删除
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="./js/api.js" defer></script>
+    <script src="./js/tech-background.js" defer></script>
+    <script src="./js/admin.js" defer></script>
+</body>
+</html>
