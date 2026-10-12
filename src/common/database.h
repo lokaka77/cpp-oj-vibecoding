@@ -1,10 +1,12 @@
 #pragma once
 
 #include "config.h"
+#include "oj/models.h"
 
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <vector>
 
 struct AuthUser {
     std::uint64_t id = 0;
@@ -24,6 +26,10 @@ public:
     bool insert_user(const std::string& username,
                      const std::string& password_hash,
                      const std::string& role);
+    bool list_problems(std::vector<ProblemSummary>& problems);
+    bool find_problem_by_id(std::uint64_t id, Problem& problem);
+    bool list_sample_test_cases(std::uint64_t problem_id,
+                                std::vector<TestCase>& test_cases);
 
 private:
     void* mysql_ = nullptr;

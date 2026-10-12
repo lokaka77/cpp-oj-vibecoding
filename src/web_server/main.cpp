@@ -2,6 +2,7 @@
 #include "auth_service.h"
 #include "database.h"
 #include "logging.h"
+#include "problem_service.h"
 #include "session.h"
 
 #include <httplib.h>
@@ -31,6 +32,7 @@ void run_http_server(const ServerConfig& config) {
     });
 
     register_auth_routes(server, database, sessions);
+    register_problem_routes(server, database);
 
     log_info("HTTP server listening on " + config.listen_address + ":" +
              std::to_string(config.port));

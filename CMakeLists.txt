@@ -32,6 +32,7 @@ target_link_libraries(oj_common PUBLIC
 
 add_executable(web_server
     src/web_server/auth_service.cc
+    src/web_server/problem_service.cc
     src/web_server/session.cc
     src/web_server/main.cpp
 )
@@ -55,6 +56,7 @@ add_executable(oj_tests
     tests/unit/config_test.cc
     tests/unit/logging_test.cc
     tests/unit/password_test.cc
+    tests/unit/problem_service_test.cc
     tests/unit/session_test.cc
     src/web_server/session.cc
 )
@@ -67,6 +69,7 @@ target_include_directories(oj_tests PRIVATE
 
 target_link_libraries(oj_tests PRIVATE
     oj_common
+    httplib::httplib
     GTest::gtest
     GTest::gtest_main
 )
