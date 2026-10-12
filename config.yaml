@@ -14,6 +14,7 @@ judge:
   compiler: g++
   temp_dir: ./build/judge_tmp
   worker_count: 2
+  time_limit_ms: 1000
 
 logging:
   level: info

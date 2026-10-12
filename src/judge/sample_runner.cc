@@ -102,7 +102,7 @@ SampleRunResult SampleRunner::run(const std::string& code,
                 input_file,
                 output_file,
                 error_file,
-                std::chrono::milliseconds(1000));
+                std::chrono::milliseconds(config_.time_limit_ms));
 
             if (!process.started) {
                 log_error("Failed to start sample process: " + process.error);

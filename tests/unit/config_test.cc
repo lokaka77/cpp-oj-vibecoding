@@ -105,6 +105,21 @@ TEST(ConfigManagerTest, LoadsDatabaseConfig) {
     EXPECT_EQ(database.name, "oj_test");
 }
 
+TEST(ConfigManagerTest, LoadsJudgeConfig) {
+    TempConfigFile file(
+        "server: {}\n"
+        "judge:\n"
+        "  worker_count: 3\n"
+        "  time_limit_ms: 1500\n");
+
+    ConfigManager& manager = ConfigManager::instance();
+    ASSERT_TRUE(manager.load(file.path()));
+
+    const JudgeConfig& judge = manager.config().judge;
+    EXPECT_EQ(judge.worker_count, 3);
+    EXPECT_EQ(judge.time_limit_ms, 1500);
+}
+
 TEST(ConfigManagerTest, ReloadResetsPreviousValues) {
     {
         TempConfigFile file(
@@ -138,6 +153,15 @@ TEST(ConfigManagerTest, RejectsPortAboveMaximum) {
     TempConfigFile file(
         "server:\n"
         "  port: 65536\n");
+
+    EXPECT_FALSE(ConfigManager::instance().load(file.path()));
+}
+
+TEST(ConfigManagerTest, RejectsInvalidJudgeTimeLimit) {
+    TempConfigFile file(
+        "server: {}\n"
+        "judge:\n"
+        "  time_limit_ms: 0\n");
 
     EXPECT_FALSE(ConfigManager::instance().load(file.path()));
 }

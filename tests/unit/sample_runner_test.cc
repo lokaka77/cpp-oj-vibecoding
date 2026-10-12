@@ -12,11 +12,12 @@ namespace {
 #define OJ_TEST_COMPILER "g++"
 #endif
 
-SampleRunner make_runner() {
+SampleRunner make_runner(int time_limit_ms = 1000) {
     JudgeConfig config;
     config.compiler = OJ_TEST_COMPILER;
     std::replace(config.compiler.begin(), config.compiler.end(), '/', '\\');
     config.temp_dir = "./judge_test_tmp";
+    config.time_limit_ms = time_limit_ms;
     return SampleRunner(config);
 }
 
@@ -77,7 +78,7 @@ TEST(SampleRunnerTest, DetectsTimeLimitExceeded) {
         "int main(){while(true){}}\n";
     std::vector<TestCase> samples = {make_sample("", "")};
 
-    SampleRunResult result = make_runner().run(code, samples);
+    SampleRunResult result = make_runner(200).run(code, samples);
 
     EXPECT_FALSE(result.passed);
     EXPECT_EQ(result.verdict, "TLE");

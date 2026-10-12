@@ -65,11 +65,19 @@ bool ConfigManager::load(const std::string& path) {
                 config_.judge.worker_count =
                     judge["worker_count"].as<int>();
             }
+            if (judge["time_limit_ms"]) {
+                config_.judge.time_limit_ms =
+                    judge["time_limit_ms"].as<int>();
+            }
         }
 
         if (config_.judge.worker_count < 1 ||
             config_.judge.worker_count > 64) {
             throw std::runtime_error("Invalid judge worker count");
+        }
+        if (config_.judge.time_limit_ms < 1 ||
+            config_.judge.time_limit_ms > 60000) {
+            throw std::runtime_error("Invalid judge time limit");
         }
 
         YAML::Node logging = root["logging"];
