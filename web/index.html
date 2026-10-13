@@ -3,12 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeHunter</title>
-    <meta http-equiv="refresh" content="0; url=./login.html">
+    <title>CodeHunter - C++ 在线判题平台</title>
+    <meta name="theme-color" content="#070a0f">
+    <link rel="stylesheet" href="./css/style.css?v=5">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1118'/%3E%3Cpath d='M20 44 32 20l12 24' stroke='%2326d0ce' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
-<body>
-    <script>
-        window.location.replace("./login.html");
-    </script>
+<body class="app-page">
+    <canvas id="tech-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="app-brand" href="./index.html" aria-label="CodeHunter 首页">
+                <span class="brand-mark brand-mark-small" aria-hidden="true">C++</span>
+                <span class="app-brand-name">CodeHunter</span>
+            </a>
+
+            <nav class="app-nav" aria-label="主导航">
+                <a class="app-nav-link" href="./problems.html">题库</a>
+                <a id="admin-nav-link" class="app-nav-link" href="./admin.html" hidden>管理</a>
+                <a id="admin-users-nav-link" class="app-nav-link" href="./admin-users.html" hidden>用户</a>
+            </nav>
+
+            <div class="app-user">
+                <span id="user-role" class="role-badge" hidden></span>
+                <span id="user-name" class="user-name" hidden></span>
+                <a id="login-link" class="ghost-button" href="./login.html">登录 / 注册</a>
+                <button id="logout-button" class="ghost-button" type="button" hidden>
+                    退出
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section class="landing-hero">
+                <div class="landing-inner">
+                    <p class="eyebrow">C++17 ONLINE JUDGE</p>
+                    <h1>CodeHunter</h1>
+                    <p class="landing-lead">
+                        面向 C++ 教学与训练的在线判题平台：在浏览器里编写代码、运行样例，
+                        提交后直接拿到 AC、WA、TLE、RE 或 CE 的判题结论。
+                    </p>
+                    <div class="landing-cta">
+                        <a id="primary-cta"
+                           class="primary-button landing-button"
+                           href="./problems.html">
+                            开始刷题
+                        </a>
+                        <a id="secondary-cta"
+                           class="secondary-button landing-button"
+                           href="./login.html">
+                            登录 / 注册
+                        </a>
+                    </div>
+                    <p class="landing-note">g++ · C++17 · 1 秒时限 · 128MB 内存限制</p>
+                </div>
+            </section>
+
+            <section class="landing-band" aria-labelledby="platform-title">
+                <div class="landing-inner">
+                    <header class="landing-section-header">
+                        <p class="eyebrow">PLATFORM</p>
+                        <h2 id="platform-title">从编写到判题，一条链路完成</h2>
+                        <p class="landing-section-copy">
+                            面向 3 至 20 人的教学训练场景：固定的判题并发、
+                            明确的结论反馈，以及一页式的管理入口。
+                        </p>
+                    </header>
+
+                    <div class="feature-grid">
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="m4 17 6-6-6-6"></path>
+                                    <path d="M12 19h8"></path>
+                                </svg>
+                            </span>
+                            <h3>在线编译运行</h3>
+                            <p>内置编辑器支持运行样例，无需在本机准备编译环境。</p>
+                        </article>
+
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 3l7 3v6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V6Z"></path>
+                                    <path d="m9 12 2 2 4-4"></path>
+                                </svg>
+                            </span>
+                            <h3>独立判题进程</h3>
+                            <p>每次提交在独立子进程中运行，超时与超内存会被及时终止。</p>
+                        </article>
+
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M9 4.6C9.8 3.5 10.8 3 12 3s2.2.5 3 1.6c1.6 2.2 2.5 5.3 2.5 8.4 0 5-2.4 8.5-5.5 8.5S6.5 18 6.5 13c0-3.1.9-6.2 2.5-8.4Z"></path>
+                                    <path d="M9.6 8.4c-.7 1.4-1.1 3-1.1 4.7"></path>
+                                </svg>
+                            </span>
+                            <h3>通过即有标记</h3>
+                            <p>已通过的题目会点亮金色标记，训练进度一眼可见。</p>
+                        </article>
+
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M4 6h16"></path>
+                                    <path d="M4 12h16"></path>
+                                    <path d="M4 18h16"></path>
+                                    <circle cx="9" cy="6" r="2"></circle>
+                                    <circle cx="15" cy="12" r="2"></circle>
+                                    <circle cx="7" cy="18" r="2"></circle>
+                                </svg>
+                            </span>
+                            <h3>题目管理后台</h3>
+                            <p>管理员可以维护题目、导入测试用例并管理用户账号。</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="landing-band is-surface" aria-labelledby="judge-title">
+                <div class="landing-inner">
+                    <header class="landing-section-header">
+                        <p class="eyebrow">JUDGE PIPELINE</p>
+                        <h2 id="judge-title">提交之后发生了什么</h2>
+                        <p class="landing-section-copy">
+                            Web 服务只负责接收提交，判题 worker 在后台完成编译与运行，
+                            结论再回写给提交者。
+                        </p>
+                    </header>
+
+                    <div class="code-window">
+                        <div class="code-window-header">
+                            <span class="window-dots" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                            <span class="code-window-title">solution.cpp</span>
+                            <span class="verdict-chip">AC · 12ms</span>
+                        </div>
+                        <pre aria-label="C++ 示例代码"><code><span class="tok-pre">#include</span> <span class="tok-str">&lt;iostream&gt;</span>
+
+<span class="tok-key">int</span> main() {
+    <span class="tok-type">long long</span> a = <span class="tok-num">0</span>;
+    <span class="tok-type">long long</span> b = <span class="tok-num">0</span>;
+    std::cin &gt;&gt; a &gt;&gt; b;
+    std::cout &lt;&lt; a + b &lt;&lt; <span class="tok-str">'\n'</span>;
+    <span class="tok-key">return</span> <span class="tok-num">0</span>;
+}</code></pre>
+                    </div>
+
+                    <ol class="judge-flow">
+                        <li>
+                            <span class="judge-step">STEP 01</span>
+                            <span class="judge-label">接收提交</span>
+                        </li>
+                        <li>
+                            <span class="judge-step">STEP 02</span>
+                            <span class="judge-label">g++ -std=c++17 编译</span>
+                        </li>
+                        <li>
+                            <span class="judge-step">STEP 03</span>
+                            <span class="judge-label">逐组测试用例运行</span>
+                        </li>
+                        <li>
+                            <span class="judge-step">STEP 04</span>
+                            <span class="judge-label">写回判题结论</span>
+                        </li>
+                    </ol>
+                </div>
+            </section>
+
+            <section class="landing-stats" aria-label="平台概览">
+                <div class="landing-inner landing-stats-grid">
+                    <div class="stat">
+                        <p id="stat-problems" class="stat-value">—</p>
+                        <p class="stat-label">题目数量</p>
+                    </div>
+                    <div class="stat">
+                        <p class="stat-value">1s</p>
+                        <p class="stat-label">单点时间限制</p>
+                    </div>
+                    <div class="stat">
+                        <p class="stat-value">128MB</p>
+                        <p class="stat-label">内存限制</p>
+                    </div>
+                    <div class="stat">
+                        <p class="stat-value">C++17</p>
+                        <p class="stat-label">判题语言</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="landing-footer">
+            <div class="landing-inner landing-footer-inner">
+                <span class="landing-footer-brand">CodeHunter</span>
+                <div class="landing-footer-meta">
+                    <span class="landing-meta">C++17 · cpp-httplib · MySQL · 本地部署</span>
+                    <span class="landing-meta">v0.1</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="./js/api.js?v=5" defer></script>
+    <script src="./js/tech-background.js?v=5" defer></script>
+    <script src="./js/landing.js?v=5" defer></script>
 </body>
 </html>
