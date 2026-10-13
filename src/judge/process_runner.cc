@@ -74,7 +74,124 @@ HANDLE open_with_retry(HANDLE (*open_file)(const std::filesystem::path&),
     return INVALID_HANDLE_VALUE;
 }
 
+// 构造受限令牌：把当前用户的 SID 设为 deny-only，
+// 这样用户代码读不到项目文件（config.yaml、数据库文件等），
+// 但仍能读 System32 下的系统 DLL（它们的权限给的是 Everyone/Users）。
+HANDLE restricted_token() {
+    static std::once_flag once;
+    static HANDLE token = nullptr;
+
+    std::call_once(once, []() {
+        HANDLE current = nullptr;
+        if (!OpenProcessToken(GetCurrentProcess(),
+                              TOKEN_DUPLICATE | TOKEN_QUERY,
+                              &current)) {
+            return;
+        }
+
+        DWORD size = 0;
+        GetTokenInformation(current, TokenUser, nullptr, 0, &size);
+        std::vector<char> buffer(size);
+        if (size == 0 ||
+            !GetTokenInformation(current, TokenUser, buffer.data(), size,
+                                 &size)) {
+            CloseHandle(current);
+            return;
+        }
+
+        auto* user = reinterpret_cast<TOKEN_USER*>(buffer.data());
+        SID_AND_ATTRIBUTES deny{};
+        deny.Sid = user->User.Sid;
+        deny.Attributes = 0;
+
+        HANDLE created = nullptr;
+        if (CreateRestrictedToken(current, DISABLE_MAX_PRIVILEGE,
+                                  1, &deny,
+                                  0, nullptr,
+                                  0, nullptr,
+                                  &created)) {
+            token = created;
+        }
+        CloseHandle(current);
+    });
+
+    return token;
+}
+
 }  // namespace
+
+bool ensure_restricted_access(const std::filesystem::path& directory) {
+    std::error_code error;
+    if (!std::filesystem::exists(directory, error)) {
+        return false;
+    }
+
+    wchar_t system_root[MAX_PATH]{};
+    if (GetEnvironmentVariableW(L"SystemRoot", system_root, MAX_PATH) == 0) {
+        return false;
+    }
+
+    // 通过 icacls 给目录追加 Everyone 的读写权限（固定命令，不含任何用户输入）。
+    const std::wstring icacls =
+        std::wstring(system_root) + L"\\System32\\icacls.exe";
+    std::wstring command = quote_windows_argument(icacls) + L" " +
+                           quote_windows_argument(directory.wstring()) +
+                           L" /grant \"*S-1-1-0:(OI)(CI)M\"";
+
+    std::vector<wchar_t> buffer(command.begin(), command.end());
+    buffer.push_back(L'\0');
+
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process{};
+    if (!CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, FALSE,
+                        CREATE_NO_WINDOW, nullptr, nullptr, &startup,
+                        &process)) {
+        return false;
+    }
+
+    WaitForSingleObject(process.hProcess, 10000);
+    DWORD exit_code = 1;
+    GetExitCodeProcess(process.hProcess, &exit_code);
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    return exit_code == 0;
+}
+
+FixedRunPath::FixedRunPath(const std::filesystem::path& base_directory) {
+    path_ = base_directory / "runner" / "program.exe";
+    std::error_code error;
+    std::filesystem::create_directories(path_.parent_path(), error);
+
+    HANDLE mutex = CreateMutexW(nullptr, FALSE, L"Local\\CodeHunterJudgeRun");
+    if (mutex != nullptr) {
+        WaitForSingleObject(mutex, INFINITE);
+    }
+    mutex_ = mutex;
+}
+
+FixedRunPath::~FixedRunPath() {
+    std::error_code error;
+    std::filesystem::remove(path_, error);
+
+    if (mutex_ != nullptr) {
+        auto* mutex = static_cast<HANDLE>(mutex_);
+        ReleaseMutex(mutex);
+        CloseHandle(mutex);
+    }
+}
+
+bool FixedRunPath::stage(const std::filesystem::path& executable) {
+    std::error_code error;
+    std::filesystem::copy_file(executable, path_,
+                               std::filesystem::copy_options::overwrite_existing,
+                               error);
+    return !error;
+}
+
+const std::filesystem::path& FixedRunPath::path() const {
+    return path_;
+}
 
 std::wstring quote_windows_argument(const std::wstring& argument) {
     if (argument.empty()) {
@@ -112,7 +229,9 @@ ProcessResult ProcessRunner::run(
     const std::filesystem::path& output_file,
     const std::filesystem::path& error_file,
     std::size_t memory_limit_mb,
-    std::chrono::milliseconds timeout) {
+    std::chrono::milliseconds timeout,
+    bool restrict_file_access,
+    bool limit_child_processes) {
     ProcessResult result;
 
     disable_error_reporting();
@@ -154,6 +273,13 @@ ProcessResult ProcessRunner::run(
     startup.hStdOutput = output_handle;
     startup.hStdError = error_handle;
 
+    // 子进程工作目录固定为可执行文件所在目录（判题临时目录），
+    // 避免用户代码用相对路径读到项目目录下的配置文件等敏感文件。
+    // 注意：编译器是相对路径（g++，靠 PATH 解析），此时 parent_path()
+    // 为空，必须回退为继承父进程工作目录，否则 CreateProcess 会失败。
+    const std::wstring working_directory =
+        executable.parent_path().wstring();
+
     PROCESS_INFORMATION process{};
     BOOL created = FALSE;
     DWORD create_error = 0;
@@ -167,17 +293,38 @@ ProcessResult ProcessRunner::run(
             command_line.begin(), command_line.end());
         command_buffer.push_back(L'\0');
 
-        created = CreateProcessW(
-            nullptr,
-            command_buffer.data(),
-            nullptr,
-            nullptr,
-            TRUE,
-            CREATE_SUSPENDED | CREATE_NO_WINDOW,
-            nullptr,
-            nullptr,
-            &startup,
-            &process);
+        // 受限令牌方案在标准用户权限下会被窗口站 ACL 拒绝
+        // （CreateProcessAsUser 返回 ERROR_ACCESS_DENIED），
+        // 因此默认不启用；保留开关供将来配合 AppContainer 使用。
+        HANDLE token = restrict_file_access ? restricted_token() : nullptr;
+        if (token != nullptr) {
+            created = CreateProcessAsUserW(
+                token,
+                nullptr,
+                command_buffer.data(),
+                nullptr,
+                nullptr,
+                TRUE,
+                CREATE_SUSPENDED | CREATE_NO_WINDOW,
+                nullptr,
+                working_directory.empty() ? nullptr
+                                          : working_directory.c_str(),
+                &startup,
+                &process);
+        } else {
+            created = CreateProcessW(
+                nullptr,
+                command_buffer.data(),
+                nullptr,
+                nullptr,
+                TRUE,
+                CREATE_SUSPENDED | CREATE_NO_WINDOW,
+                nullptr,
+                working_directory.empty() ? nullptr
+                                          : working_directory.c_str(),
+                &startup,
+                &process);
+        }
         if (!created) {
             create_error = GetLastError();
         }
@@ -207,6 +354,13 @@ ProcessResult ProcessRunner::run(
                 JOB_OBJECT_LIMIT_JOB_MEMORY;
             limits.ProcessMemoryLimit = bytes;
             limits.JobMemoryLimit = bytes;
+        }
+        if (limit_child_processes) {
+            // 判题程序不允许创建子进程：否则可以用 system() 拉起
+            // curl / powershell 等程序绕过按路径配置的防火墙规则。
+            limits.BasicLimitInformation.LimitFlags |=
+                JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            limits.BasicLimitInformation.ActiveProcessLimit = 1;
         }
         SetInformationJobObject(job,
                                 JobObjectExtendedLimitInformation,

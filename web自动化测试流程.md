@@ -199,7 +199,7 @@ npm run test:headed     # 需要肉眼观察操作过程时
 - 经确认，口径修订为"单用户 ≤ 2 秒；20 并发全部成功且 p95 ≤ 6 秒"，实测 1.39 秒 / p95 4.88 秒，**达标**。
 - 若后续迁移到 Linux 服务器或引入编译缓存、预编译头，可再收紧到"单用户 ≤ 1 秒、并发 p95 ≤ 3 秒"。
 
-## 6. 安全验收流程（SPEC 16.3，待执行）
+## 6. 安全验收流程（SPEC 16.3）
 
 | 检查项 | 执行方法 | 通过标准 |
 | --- | --- | --- |
@@ -209,6 +209,37 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 读取服务端文件 | 提交 `ifstream` 读取 `C:\Windows\win.ini` 的代码 | 文件内容不出现在结论中 |
 | 建立外网连接 | 提交 socket 连接外部地址的代码 | 连接失败或超时，不产生外部流量 |
 | 命令注入 | 提交 `system("whoami")` 之类代码 | 不产生额外进程与输出，结论为 `RE`/`WA` |
+
+一键执行：`powershell -ExecutionPolicy Bypass -File scripts\security_test.ps1`
+
+注意：脚本会做一次宿主机联网对照，用于判断"用户代码能否联网"的结果是否有效；请在**非沙箱**环境运行，并确保启动服务时也没有沙箱限制（否则判题子进程会继承网络限制，产生"已隔离"的假象）。
+
+### 6.1 实测结果（2026-10-13，9 项检查）
+
+| 检查项 | 结果 | 证据 |
+| --- | --- | --- |
+| 密码存储 | 通过 | 23 个账号全部为 `$argon2id$` 哈希 |
+| SQL 注入（登录） | 通过 | 4 个载荷全部 401，admin 仍可登录，用户数未变 |
+| SQL 注入（引号用户名） | 通过 | `inj_quote_'x` 按字面存储并可正常登录 |
+| SQL 注入（路径参数） | 通过 | 畸形路径 404 |
+| 普通用户越权 | 通过 | 5 个管理端接口全部 403，题目未被篡改 |
+| 敏感文件读取（相对路径） | 通过 | 判题工作目录固定为临时目录，读不到 `config.yaml` |
+| 敏感文件读取（绝对路径） | **未通过** | 绝对路径可读到项目 `config.yaml` |
+| 外网连接 | 通过（加固后） | 添加防火墙按路径拦截 + 禁止判题程序创建子进程后，直连与借道 `curl` 两类探测均返回 `WA` |
+| 命令注入 / 进程树 | 通过 | 无 shell 调用；TLE 后子进程随作业对象清理，无残留 |
+
+结论：6 项安全验收条目中 5 项通过；剩余 1 项（绝对路径读文件）属于 Windows Job Object 的能力边界（无文件系统隔离），与 SPEC 14.1 的风险判断一致，处置方向见 SPEC 16.3。
+
+### 6.2 Windows 本地加固记录（2026-10-13）
+
+| 目标 | 措施 | 状态 |
+| --- | --- | --- |
+| 阻断相对路径读项目文件 | 判题子进程工作目录固定为判题临时目录 | 已生效（探测返回 `WA`） |
+| 阻断绝对路径读项目文件 | 尝试受限令牌（deny-only 用户 SID） | 未解决：标准用户权限下 `CreateProcessAsUser` 被窗口站 ACL 拒绝（错误 5），需 AppContainer 或迁移 Linux |
+| 阻断用户代码出网（直连） | 判题产物固定到 `build\judge_tmp\runner\program.exe` + 防火墙规则脚本 `scripts/harden_judge.ps1` | 已由管理员执行，规则生效；直连探测 `WA` |
+| 阻断借道子进程出网 | Job Object 限制活动进程数为 1（判题程序不能创建子进程） | 已生效；`system("curl ...")` 探测 `WA` |
+
+加固后需重跑 `scripts\security_test.ps1` 复验"外网连接"一项；`-Status` 可查看规则是否生效。
 
 ## 7. 结论记录规范
 
@@ -224,7 +255,9 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 2026-10-13 | 功能验收（16.1，Playwright 15 条，有头模式） | 通过 | `15 passed / 26.9 秒`，覆盖游客、学生、管理员与判题结论矩阵，报告见 `tests/e2e/report/` |
 | 2026-10-13 | 功能验收（16.1，接口层复核 CE / RE 响应） | 通过 | 响应体仅含 `submission_id` 与 `verdict`，无编译日志 |
 | 2026-10-13 | 性能验收（16.2） | 通过 | 口径修订为单用户 ≤2 秒、20 并发 p95 ≤6 秒；实测 1.39 秒 / p95 4.88 秒，TLE 与稳定性达标，分析见 5.1 |
-| 2026-10-13 | 安全验收（16.3） | 待执行 | — |
+| 2026-10-13 | 安全验收（16.3） | 部分通过 | 9 项检查 7 通过、2 未通过（绝对路径读文件、外网连接），详见 6.1 |
+| 2026-10-13 | Windows 本地加固 | 部分完成 | 相对路径读取已封堵、固定执行路径与防火墙脚本已就绪；绝对路径读取需 AppContainer 或 Linux；外网拦截待管理员执行脚本后复验 |
+| 2026-10-13 | Windows 本地加固（复验） | 通过（网络部分） | 管理员已执行防火墙脚本；直连与借道子进程两类外网探测均 `WA`；安全验收 9 项中 8 项通过，仅剩绝对路径读文件 |
 
 ### 8.1 缺陷记录
 
@@ -233,6 +266,10 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 2026-10-13 | 提交空指针崩溃的代码被判为 `TLE`，应为 `RE` | Windows 错误报告（WerFault）会挂住崩溃进程，判题侧等满 1 秒时间限制后按超时处理 | 在 `src/judge/process_runner.cc` 创建子进程前调用 `SetErrorMode`（`SEM_FAILCRITICALERRORS` 与 `SEM_NOGPFAULTERRORBOX`），子进程继承后立即以非 0 退出码结束，判定为 `RE`；重跑用例 2.3 秒返回并通过 |
 | 2026-10-13 | 20 用户并发时 6 次提交返回 `JUDGE_TIMEOUT`（503） | 判题并发只有 2 个 worker，排队时间超过 `web_server` 的 10 秒等待上限 | `config.yaml` 的 `worker_count` 调到 8；`problem_service.cc` 的等待上限放宽到 30 秒、轮询间隔 50ms → 10ms；`judge` 取任务间隔 100ms → 20ms。复测 20/20 成功，p50 6.63 → 3.37 秒 |
 | 2026-10-13 | 并发压测中正确代码偶发被判 `RE`（1/40） | 高并发下重定向文件被杀软短暂占用，`CreateFileW` 失败被当成用户运行时错误 | `process_runner.cc` 对文件打开与 `CreateProcess` 增加退避重试（4 次 / 3 次）并记录 `GetLastError`；复测 2 轮 × 20 次全部 `AC`，无复发 |
+| 2026-10-13 | 用户代码可用相对路径读取项目 `config.yaml`（含数据库口令） | 判题子进程继承了服务的工作目录 | `process_runner.cc` 将子进程工作目录固定为可执行文件所在目录（判题临时目录）；修复过程中发现编译器为相对路径会导致创建失败，已回退为"仅绝对路径时设置"；复测相对路径读取失败 |
+| 2026-10-13 | 安全验收两项未通过：绝对路径读文件、用户代码可访问外网 | Windows Job Object 仅限制 CPU/内存/进程数，没有文件系统与网络隔离 | 记为已知限制，处置方向：迁移 Linux（命名空间/容器隔离）或在 Windows 上固定判题路径 + 管理员添加防火墙出站规则与目录 ACL |
+| 2026-10-13 | 加固尝试：受限令牌判题会导致所有提交失败（`CreateProcess failed with error 5`） | 受限令牌把用户 SID 设为 deny-only 后，进程创建所需的窗口站/桌面访问同样被拒绝 | 已回退为默认不启用（保留开关与注释）；替代方案为 AppContainer 或 Linux 部署 |
+| 2026-10-13 | 防火墙按程序路径拦截存在绕过：用户代码可用 `system("curl ...")` 借子进程联网 | 防火墙规则只匹配被判题程序自身镜像路径，不覆盖它创建的子进程 | 在 Job Object 上设置 `JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 1`，判题程序无法创建子进程；复测借道探测返回 `WA`，正常判题仍为 `AC` |
 
 ## 9. 命令速查
 
@@ -246,6 +283,8 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 运行页面测试 | `Set-Location tests\e2e; npm test` |
 | 查看测试报告 | `Set-Location tests\e2e; npm run report` |
 | 性能验收 | `powershell -ExecutionPolicy Bypass -File scripts\perf_test.ps1` |
+| 安全验收 | `powershell -ExecutionPolicy Bypass -File scripts\security_test.ps1` |
+| 判题加固（管理员） | `powershell -ExecutionPolicy Bypass -File scripts\harden_judge.ps1` |
 | 单元 + 集成测试 | `& .\.tools\w64devkit\w64devkit\bin\ctest.exe --test-dir build --output-on-failure` |
 
 运行页面测试前记得把便携 Node 加入 PATH：

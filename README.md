@@ -103,6 +103,8 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_users.ps1
 - 数据库集成测试：`database_integration_tests`
 - 接口级回归：`基于curl命令的接口自动化测试.md`
 - 性能验收：`powershell -ExecutionPolicy Bypass -File scripts\perf_test.ps1`
+- 安全验收：`powershell -ExecutionPolicy Bypass -File scripts\security_test.ps1`
+- 判题网络加固（需管理员执行一次）：`powershell -ExecutionPolicy Bypass -File scripts\harden_judge.ps1`
 
 ### 9. 前端端到端测试（Playwright）
 

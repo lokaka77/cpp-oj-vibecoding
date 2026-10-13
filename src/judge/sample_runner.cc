@@ -8,6 +8,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -61,7 +62,22 @@ SampleRunResult SampleRunner::run(const std::string& code,
     }
 
     try {
-        TempDirectory temp_dir(std::filesystem::absolute(config_.temp_dir));
+        const std::filesystem::path temp_root =
+            std::filesystem::absolute(config_.temp_dir);
+        std::error_code directory_error;
+        std::filesystem::create_directories(temp_root, directory_error);
+
+        // 受限令牌下的判题进程只能访问 Everyone 有权限的路径，
+        // 因此先给判题临时根目录追加 Everyone 权限（每个进程只做一次）。
+        static std::once_flag access_once;
+        std::call_once(access_once, [&temp_root]() {
+            if (!ensure_restricted_access(temp_root)) {
+                log_warning("Failed to grant Everyone access on " +
+                            temp_root.string());
+            }
+        });
+
+        TempDirectory temp_dir(temp_root);
         std::filesystem::path source = temp_dir.path() / "main.cpp";
         std::filesystem::path executable = temp_dir.path() / "program.exe";
 
@@ -78,6 +94,13 @@ SampleRunResult SampleRunner::run(const std::string& code,
             return {false, "CE", message};
         }
 
+        // 统一落到固定路径执行：便于按路径配置防火墙出网阻断规则。
+        FixedRunPath run_path(temp_root);
+        if (!run_path.stage(executable)) {
+            log_error("Failed to stage runner executable");
+            return {false, "RE", "运行失败"};
+        }
+
         for (std::size_t index = 0; index < samples.size(); ++index) {
             std::filesystem::path input_file =
                 temp_dir.path() / ("input_" + std::to_string(index) + ".txt");
@@ -89,13 +112,15 @@ SampleRunResult SampleRunner::run(const std::string& code,
             write_file(input_file, samples[index].input_data);
 
             ProcessResult process = ProcessRunner::run(
-                executable,
+                run_path.path(),
                 L"",
                 input_file,
                 output_file,
                 error_file,
                 static_cast<std::size_t>(config_.memory_limit_mb),
-                std::chrono::milliseconds(config_.time_limit_ms));
+                std::chrono::milliseconds(config_.time_limit_ms),
+                false,
+                true);
 
             if (!process.started) {
                 log_error("Failed to start sample process: " + process.error);
