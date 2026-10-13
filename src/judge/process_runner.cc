@@ -5,9 +5,19 @@
 #endif
 #include <windows.h>
 
+#include <mutex>
 #include <vector>
 
 namespace {
+
+void disable_error_reporting() {
+    static std::once_flag once;
+    std::call_once(once, []() {
+        // 让崩溃的子进程直接退出：否则 Windows 错误报告会挂住进程，
+        // 判题侧等满时间限制后会把它误判成 TLE。
+        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+    });
+}
 
 SECURITY_ATTRIBUTES inheritable_attributes() {
     SECURITY_ATTRIBUTES attributes{};
@@ -88,6 +98,8 @@ ProcessResult ProcessRunner::run(
     std::size_t memory_limit_mb,
     std::chrono::milliseconds timeout) {
     ProcessResult result;
+
+    disable_error_reporting();
 
     HANDLE input_handle = open_input(input_file);
     HANDLE output_handle = open_output(output_file);

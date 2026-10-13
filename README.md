@@ -115,7 +115,7 @@ npm run test:headed   # 需要观察浏览器操作时
 ```
 
 - Node 使用 `.tools\node` 下的便携版，Playwright 测试包位于 `tests/e2e/node_modules`，两者都不提交到 Git。
-- 用例位于 `tests/e2e/specs/`：`guest.spec.js`（游客预览、难度筛选、返回落地页）、`student.spec.js`（登录、运行样例、提交判题、退出）、`admin.spec.js`（管理入口、用户目录、题目增删）。
+- 用例位于 `tests/e2e/specs/`，共 15 条：`guest.spec.js`（游客预览、难度筛选、返回落地页）、`student.spec.js`（登录、运行样例、提交判题、退出）、`admin.spec.js`（管理入口、用户目录、题目增删）、`judge.spec.js`（AC / WA / TLE / RE / CE 五种判题结论）。
 - 首次安装依赖：在 `tests/e2e` 目录执行 `npm install`（已配置跳过浏览器内核下载，直接使用系统 Edge）。
 - 运行后生成 HTML 报告：`tests/e2e/report/index.html`。
 
