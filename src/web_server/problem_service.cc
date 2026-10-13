@@ -163,8 +163,10 @@ void register_problem_routes(httplib::Server& server,
             return;
         }
 
+        // 并发提交时判题需要排队，留出足够的等待窗口；
+        // 超过该时间仍未出结论才返回 JUDGE_TIMEOUT。
         const auto deadline =
-            std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            std::chrono::steady_clock::now() + std::chrono::seconds(30);
         while (std::chrono::steady_clock::now() < deadline) {
             std::string status;
             std::string verdict;
@@ -182,7 +184,7 @@ void register_problem_routes(httplib::Server& server,
                 return;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         send_error(response, 503, "JUDGE_TIMEOUT",

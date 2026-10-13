@@ -102,6 +102,7 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_users.ps1
 - 单元测试：`oj_tests`
 - 数据库集成测试：`database_integration_tests`
 - 接口级回归：`基于curl命令的接口自动化测试.md`
+- 性能验收：`powershell -ExecutionPolicy Bypass -File scripts\perf_test.ps1`
 
 ### 9. 前端端到端测试（Playwright）
 
@@ -129,7 +130,7 @@ npm run test:headed   # 需要观察浏览器操作时
 | 端到端判题 | 注册 → 登录 → 运行样例 → 提交返回 `AC`，经过 web_server、MySQL、judge_worker、g++ 全链路 |
 | 管理员功能 | 登录、用户列表、删除测试账号均正常 |
 | 重启持久化 | 重启前后 用户 3 / 题目 1 / 测试用例 3 / 提交 20，数据一致 |
-| 已知事项 | 单次提交端到端约 1.1 秒（主要为 g++ 编译耗时），性能目标见 `SPEC.md` 16.2 |
+| 性能基线 | 单次提交端到端约 1.4 秒（编译约 0.45 秒 + 新二进制首次运行约 0.5 秒）；20 用户并发 20/20 成功、p50 3.4 秒、p95 4.9 秒；性能口径与实测见 `SPEC.md` 16.2 |
 
 ## 相关文档
 

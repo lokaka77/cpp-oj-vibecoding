@@ -13,7 +13,7 @@ database:
 judge:
   compiler: g++
   temp_dir: ./build/judge_tmp
-  worker_count: 2
+  worker_count: 8
   time_limit_ms: 1000
   memory_limit_mb: 128
   submit_interval_ms: 3000

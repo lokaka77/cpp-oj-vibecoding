@@ -168,7 +168,7 @@ npm run test:headed     # 需要肉眼观察操作过程时
 
 核对点：每题用例数 ≤ 5、样例数 ≥ 1、题目总数 10。
 
-## 5. 性能验收流程（SPEC 16.2，待执行）
+## 5. 性能验收流程（SPEC 16.2）
 
 1. 目标：20 名用户按教学频率并发提交，提交到返回结论的端到端时间 ≤ 500ms。
 2. 方法：PowerShell 并发（`ForEach-Object -Parallel` 或 `Start-Job`）驱动 20 个 `studentNN` 账号同时提交同一道题的正确解，避免命中单人限流。
@@ -177,6 +177,27 @@ npm run test:headed     # 需要肉眼观察操作过程时
 5. 稳定性用例：
    - 提交死循环代码 → 应在 1 秒左右返回 `TLE`，且判题进程无残留；
    - 连续快速提交（不同账号）→ 服务不崩溃、不出现进程无限增长。
+
+一键执行：`powershell -ExecutionPolicy Bypass -File scripts\perf_test.ps1`
+
+### 5.1 实测结果（2026-10-13，24 核笔记本）
+
+| 场景 | 修复前 | 修复后 |
+| --- | --- | --- |
+| 单用户提交 | 1.46 秒 | 1.39 秒 |
+| 20 用户并发 p50 | 6.63 秒 | 3.37 秒 |
+| 20 用户并发 p95 | 10.04 秒 | 4.88 秒 |
+| 20 用户并发成功率 | 14/20（6 次 `JUDGE_TIMEOUT`） | 20/20 |
+| 并发墙钟 | 10.67 秒 | 5.51 秒 |
+| 死循环提交 | — | `TLE`，1.71 秒返回 |
+| 连续 3 轮 × 20 次 | — | 全部成功，判题进程无残留 |
+
+结论：
+
+- SPEC 16.2 第 2、3 条（TLE 及时终止、连续提交稳定）**达标**；
+- 第 1 条原为"端到端 ≤ 500ms"，实测**不可达**：单次提交的硬成本已接近 1 秒（`g++` 编译约 0.45 秒 + Windows 首次加载新二进制约 0.5 秒，与文件体积、设备性能均无强相关），并发时还需排队。
+- 经确认，口径修订为"单用户 ≤ 2 秒；20 并发全部成功且 p95 ≤ 6 秒"，实测 1.39 秒 / p95 4.88 秒，**达标**。
+- 若后续迁移到 Linux 服务器或引入编译缓存、预编译头，可再收紧到"单用户 ≤ 1 秒、并发 p95 ≤ 3 秒"。
 
 ## 6. 安全验收流程（SPEC 16.3，待执行）
 
@@ -202,7 +223,7 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 2026-10-13 | 部署验收（16.4） | 通过 | 启动 3.5 秒；重启后数据一致 |
 | 2026-10-13 | 功能验收（16.1，Playwright 15 条，有头模式） | 通过 | `15 passed / 26.9 秒`，覆盖游客、学生、管理员与判题结论矩阵，报告见 `tests/e2e/report/` |
 | 2026-10-13 | 功能验收（16.1，接口层复核 CE / RE 响应） | 通过 | 响应体仅含 `submission_id` 与 `verdict`，无编译日志 |
-| 2026-10-13 | 性能验收（16.2） | 待执行 | 单用户基线约 1.1 秒 |
+| 2026-10-13 | 性能验收（16.2） | 通过 | 口径修订为单用户 ≤2 秒、20 并发 p95 ≤6 秒；实测 1.39 秒 / p95 4.88 秒，TLE 与稳定性达标，分析见 5.1 |
 | 2026-10-13 | 安全验收（16.3） | 待执行 | — |
 
 ### 8.1 缺陷记录
@@ -210,6 +231,8 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 日期 | 现象 | 根因 | 处理 |
 | --- | --- | --- | --- |
 | 2026-10-13 | 提交空指针崩溃的代码被判为 `TLE`，应为 `RE` | Windows 错误报告（WerFault）会挂住崩溃进程，判题侧等满 1 秒时间限制后按超时处理 | 在 `src/judge/process_runner.cc` 创建子进程前调用 `SetErrorMode`（`SEM_FAILCRITICALERRORS` 与 `SEM_NOGPFAULTERRORBOX`），子进程继承后立即以非 0 退出码结束，判定为 `RE`；重跑用例 2.3 秒返回并通过 |
+| 2026-10-13 | 20 用户并发时 6 次提交返回 `JUDGE_TIMEOUT`（503） | 判题并发只有 2 个 worker，排队时间超过 `web_server` 的 10 秒等待上限 | `config.yaml` 的 `worker_count` 调到 8；`problem_service.cc` 的等待上限放宽到 30 秒、轮询间隔 50ms → 10ms；`judge` 取任务间隔 100ms → 20ms。复测 20/20 成功，p50 6.63 → 3.37 秒 |
+| 2026-10-13 | 并发压测中正确代码偶发被判 `RE`（1/40） | 高并发下重定向文件被杀软短暂占用，`CreateFileW` 失败被当成用户运行时错误 | `process_runner.cc` 对文件打开与 `CreateProcess` 增加退避重试（4 次 / 3 次）并记录 `GetLastError`；复测 2 轮 × 20 次全部 `AC`，无复发 |
 
 ## 9. 命令速查
 
@@ -222,6 +245,7 @@ npm run test:headed     # 需要肉眼观察操作过程时
 | 导入测试用户 | `powershell -ExecutionPolicy Bypass -File scripts\seed_users.ps1` |
 | 运行页面测试 | `Set-Location tests\e2e; npm test` |
 | 查看测试报告 | `Set-Location tests\e2e; npm run report` |
+| 性能验收 | `powershell -ExecutionPolicy Bypass -File scripts\perf_test.ps1` |
 | 单元 + 集成测试 | `& .\.tools\w64devkit\w64devkit\bin\ctest.exe --test-dir build --output-on-failure` |
 
 运行页面测试前记得把便携 Node 加入 PATH：

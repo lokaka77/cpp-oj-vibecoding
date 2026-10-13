@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -58,6 +59,21 @@ HANDLE open_output(const std::filesystem::path& path) {
                        nullptr);
 }
 
+// 并发判题时，刚创建的输入/输出文件可能被杀毒软件短暂占用，
+// 这里做几次退避重试，避免把基础设施抖动记成用户的运行时错误。
+HANDLE open_with_retry(HANDLE (*open_file)(const std::filesystem::path&),
+                       const std::filesystem::path& path) {
+    for (int attempt = 0; attempt < 4; ++attempt) {
+        HANDLE handle = open_file(path);
+        if (handle != INVALID_HANDLE_VALUE) {
+            return handle;
+        }
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(50 * (attempt + 1)));
+    }
+    return INVALID_HANDLE_VALUE;
+}
+
 }  // namespace
 
 std::wstring quote_windows_argument(const std::wstring& argument) {
@@ -101,16 +117,17 @@ ProcessResult ProcessRunner::run(
 
     disable_error_reporting();
 
-    HANDLE input_handle = open_input(input_file);
-    HANDLE output_handle = open_output(output_file);
+    HANDLE input_handle = open_with_retry(open_input, input_file);
+    HANDLE output_handle = open_with_retry(open_output, output_file);
     HANDLE error_handle = error_file == output_file
                               ? output_handle
-                              : open_output(error_file);
+                              : open_with_retry(open_output, error_file);
 
     if (input_handle == INVALID_HANDLE_VALUE ||
         output_handle == INVALID_HANDLE_VALUE ||
         error_handle == INVALID_HANDLE_VALUE) {
-        result.error = "Failed to open process redirection files";
+        result.error = "Failed to open process redirection files (error " +
+                       std::to_string(GetLastError()) + ")";
         if (input_handle != INVALID_HANDLE_VALUE) {
             CloseHandle(input_handle);
         }
@@ -130,10 +147,6 @@ ProcessResult ProcessRunner::run(
         command_line += L" " + arguments;
     }
 
-    std::vector<wchar_t> mutable_command(
-        command_line.begin(), command_line.end());
-    mutable_command.push_back(L'\0');
-
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
     startup.dwFlags = STARTF_USESTDHANDLES;
@@ -142,21 +155,37 @@ ProcessResult ProcessRunner::run(
     startup.hStdError = error_handle;
 
     PROCESS_INFORMATION process{};
-    const BOOL created = CreateProcessW(
-        nullptr,
-        mutable_command.data(),
-        nullptr,
-        nullptr,
-        TRUE,
-        CREATE_SUSPENDED | CREATE_NO_WINDOW,
-        nullptr,
-        nullptr,
-        &startup,
-        &process);
+    BOOL created = FALSE;
+    DWORD create_error = 0;
+    for (int attempt = 0; attempt < 3 && !created; ++attempt) {
+        if (attempt > 0) {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(50 * attempt));
+        }
+
+        std::vector<wchar_t> command_buffer(
+            command_line.begin(), command_line.end());
+        command_buffer.push_back(L'\0');
+
+        created = CreateProcessW(
+            nullptr,
+            command_buffer.data(),
+            nullptr,
+            nullptr,
+            TRUE,
+            CREATE_SUSPENDED | CREATE_NO_WINDOW,
+            nullptr,
+            nullptr,
+            &startup,
+            &process);
+        if (!created) {
+            create_error = GetLastError();
+        }
+    }
 
     if (!created) {
         result.error = "CreateProcess failed with error " +
-                       std::to_string(GetLastError());
+                       std::to_string(create_error);
         CloseHandle(input_handle);
         CloseHandle(output_handle);
         if (error_handle != output_handle) {

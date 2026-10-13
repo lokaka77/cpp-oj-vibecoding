@@ -49,7 +49,7 @@ int main() {
     while (g_running.load()) {
         JudgeTask task;
         if (!database.claim_pending_submission(task)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
             continue;
         }
 
