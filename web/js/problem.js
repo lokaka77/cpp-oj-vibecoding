@@ -1,6 +1,12 @@
 (function () {
     "use strict";
 
+    const DIFFICULTY_LABELS = {
+        easy: "简单",
+        medium: "中等",
+        hard: "困难"
+    };
+
     const DEFAULT_CODE = [
         "#include <iostream>",
         "using namespace std;",
@@ -50,6 +56,7 @@
             retry: document.getElementById("problem-retry"),
             content: document.getElementById("problem-content"),
             title: document.getElementById("problem-title"),
+            difficulty: document.getElementById("problem-difficulty"),
             description: document.getElementById("problem-description"),
             samples: document.getElementById("sample-list"),
             editor: document.getElementById("code-editor"),
@@ -182,6 +189,12 @@
             elements.title.textContent = problem.title;
             elements.description.textContent = problem.description;
             elements.meta.textContent = "题目 #" + String(problem.id).padStart(3, "0");
+
+            const level = problem.difficulty || "easy";
+            elements.difficulty.dataset.level = level;
+            elements.difficulty.textContent = DIFFICULTY_LABELS[level] || "简单";
+            elements.difficulty.hidden = false;
+
             renderSamples(problem.samples);
             document.title = "CodeHunter - " + problem.title;
         }

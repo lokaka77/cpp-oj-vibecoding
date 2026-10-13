@@ -97,23 +97,26 @@
         adminListProblems: function () {
             return request("/api/admin/problems");
         },
-        adminCreateProblem: function (title, description) {
+        adminCreateProblem: function (title, description, difficulty) {
             return request("/api/admin/problems", {
                 method: "POST",
                 body: JSON.stringify({
                     title: title,
-                    description: description
+                    description: description,
+                    difficulty: difficulty || "easy"
                 })
             });
         },
-        adminUpdateProblem: function (problemId, title, description) {
+        adminUpdateProblem: function (problemId, title, description,
+                                      difficulty) {
             return request(
                 "/api/admin/problems/" + encodeURIComponent(problemId),
                 {
                     method: "PUT",
                     body: JSON.stringify({
                         title: title,
-                        description: description
+                        description: description,
+                        difficulty: difficulty || "easy"
                     })
                 }
             );

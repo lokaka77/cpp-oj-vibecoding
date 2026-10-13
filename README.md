@@ -5,6 +5,7 @@ C++ 在线判题平台（教学与训练场景）。后端 C++17 + cpp-httplib�
 ## 功能概览
 
 - 题目列表与题目详情，未登录用户可以预览描述与样例
+- 题目按难度分级（简单 / 中等 / 困难），列表页支持按难度筛选与标题搜索
 - 注册、登录、退出，Session/Cookie 会话，Argon2id 密码哈希
 - 在线编辑器：运行样例、提交判题，返回 `AC / WA / TLE / RE / CE`
 - 管理员：题目增删改、测试用例导入、用户管理
@@ -44,6 +45,12 @@ Get-Content scripts\init_db.sql -Raw | .\.tools\mysql\bin\mysql.exe -u root
 
 初始化脚本创建 `oj` 库、表结构与预置管理员账号。
 
+已有数据库升级时，执行一次迁移脚本补充 `difficulty` 字段（可重复执行）：
+
+```powershell
+Get-Content scripts\migrate_add_difficulty.sql -Raw | .\.tools\mysql\bin\mysql.exe -u root
+```
+
 ### 3. 构建
 
 ```powershell
@@ -60,7 +67,15 @@ powershell -ExecutionPolicy Bypass -File scripts\stop_local.ps1
 
 `start_local.ps1` 依次启动 MySQL、`web_server`、`judge_worker`，并等待 3306 与 8080 就绪（实测约 3.5 秒）。
 
-### 5. 访问地址
+### 5. 导入示例题库
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\seed_problems.ps1
+```
+
+脚本以题目标题为准：已存在则更新描述与难度并替换测试用例，不存在则新建。当前包含 10 道题（简单 4 / 中等 3 / 困难 3），每题 5 组测试用例（2 组样例 + 3 组隐藏）。
+
+### 6. 访问地址
 
 | 用途 | 地址 |
 | --- | --- |
@@ -70,7 +85,7 @@ powershell -ExecutionPolicy Bypass -File scripts\stop_local.ps1
 
 预置管理员：`admin / admin123`。
 
-### 6. 运行测试
+### 7. 运行测试
 
 ```powershell
 & .\.tools\w64devkit\w64devkit\bin\ctest.exe --test-dir build --output-on-failure

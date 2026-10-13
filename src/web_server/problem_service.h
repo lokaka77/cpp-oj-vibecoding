@@ -21,7 +21,9 @@ inline nlohmann::json problem_list_json(
     const std::vector<ProblemSummary>& problems) {
     nlohmann::json items = nlohmann::json::array();
     for (const ProblemSummary& problem : problems) {
-        items.push_back({{"id", problem.id}, {"title", problem.title}});
+        items.push_back({{"id", problem.id},
+                         {"title", problem.title},
+                         {"difficulty", problem.difficulty}});
     }
     return {{"problems", items}};
 }
@@ -43,6 +45,7 @@ inline nlohmann::json problem_detail_json(
         {"id", problem.id},
         {"title", problem.title},
         {"description", problem.description},
+        {"difficulty", problem.difficulty},
         {"samples", sample_items},
     };
 }

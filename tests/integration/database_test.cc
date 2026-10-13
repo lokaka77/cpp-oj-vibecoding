@@ -132,6 +132,7 @@ TEST_F(DatabaseIntegrationTest, ListsProblemAndVisibleSamples) {
     for (const ProblemSummary& problem : problems) {
         if (problem.id == problem_id) {
             EXPECT_EQ(problem.title, title);
+            EXPECT_EQ(problem.difficulty, "easy");
             found = true;
         }
     }
@@ -141,6 +142,7 @@ TEST_F(DatabaseIntegrationTest, ListsProblemAndVisibleSamples) {
     ASSERT_TRUE(database_.find_problem_by_id(problem_id, detail));
     EXPECT_EQ(detail.title, title);
     EXPECT_EQ(detail.description, "integration test description");
+    EXPECT_EQ(detail.difficulty, "easy");
 
     std::vector<TestCase> samples;
     ASSERT_TRUE(database_.list_sample_test_cases(problem_id, samples));

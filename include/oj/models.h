@@ -6,12 +6,14 @@
 struct ProblemSummary {
     std::uint64_t id = 0;
     std::string title;
+    std::string difficulty;
 };
 
 struct Problem {
     std::uint64_t id = 0;
     std::string title;
     std::string description;
+    std::string difficulty;
 };
 
 struct TestCase {

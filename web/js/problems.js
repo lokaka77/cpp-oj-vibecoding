@@ -1,6 +1,12 @@
 (function () {
     "use strict";
 
+    const DIFFICULTY_LABELS = {
+        easy: "简单",
+        medium: "中等",
+        hard: "困难"
+    };
+
     function mapError(error) {
         switch (error.code) {
         case "NETWORK_ERROR":
@@ -25,6 +31,7 @@
             loginLink: document.getElementById("login-link"),
             logoutButton: document.getElementById("logout-button"),
             search: document.getElementById("problem-search"),
+            filterTabs: document.querySelectorAll(".filter-tab"),
             count: document.getElementById("problem-count"),
             loading: document.getElementById("loading-state"),
             list: document.getElementById("problem-list"),
@@ -39,6 +46,7 @@
             problems: [],
             filtered: [],
             query: "",
+            difficulty: "all",
             loading: false,
             solvedIds: new Set()
         };
@@ -57,7 +65,9 @@
         function updateCount() {
             const total = state.problems.length;
             const visible = state.filtered.length;
-            elements.count.textContent = state.query
+            const filtering = Boolean(state.query) ||
+                state.difficulty !== "all";
+            elements.count.textContent = filtering
                 ? "显示 " + visible + " / " + total + " 道题"
                 : "共 " + total + " 道题";
         }
@@ -94,6 +104,12 @@
                 title.appendChild(egg);
             }
 
+            const difficulty = document.createElement("span");
+            difficulty.className = "difficulty-badge";
+            difficulty.dataset.level = problem.difficulty || "easy";
+            difficulty.textContent =
+                DIFFICULTY_LABELS[problem.difficulty] || "简单";
+
             const status = document.createElement("span");
             status.className = "problem-status";
             status.textContent = solved ? "已通过" : "可作答";
@@ -109,6 +125,7 @@
 
             item.appendChild(id);
             item.appendChild(title);
+            item.appendChild(difficulty);
             item.appendChild(status);
             item.appendChild(action);
             return item;
@@ -137,14 +154,19 @@
         function applyFilter() {
             const query = state.query.trim().toLowerCase();
 
-            if (!query) {
-                state.filtered = state.problems.slice();
-            } else {
-                state.filtered = state.problems.filter(function (problem) {
-                    return problem.title.toLowerCase().includes(query) ||
-                           String(problem.id).includes(query);
-                });
-            }
+            state.filtered = state.problems.filter(function (problem) {
+                if (state.difficulty !== "all" &&
+                    problem.difficulty !== state.difficulty) {
+                    return false;
+                }
+
+                if (!query) {
+                    return true;
+                }
+
+                return problem.title.toLowerCase().includes(query) ||
+                       String(problem.id).includes(query);
+            });
 
             renderProblems();
         }
@@ -206,6 +228,38 @@
         elements.search.addEventListener("input", function (event) {
             state.query = event.target.value;
             applyFilter();
+        });
+
+        function setDifficulty(difficulty) {
+            state.difficulty = difficulty;
+            elements.filterTabs.forEach(function (tab) {
+                const active = tab.dataset.difficulty === difficulty;
+                tab.classList.toggle("is-active", active);
+                tab.setAttribute("aria-selected", String(active));
+            });
+            applyFilter();
+        }
+
+        elements.filterTabs.forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                setDifficulty(tab.dataset.difficulty);
+            });
+
+            tab.addEventListener("keydown", function (event) {
+                if (event.key !== "ArrowLeft" &&
+                    event.key !== "ArrowRight") {
+                    return;
+                }
+
+                event.preventDefault();
+                const tabs = Array.prototype.slice.call(elements.filterTabs);
+                const offset = event.key === "ArrowRight" ? 1 : -1;
+                const nextTab =
+                    tabs[(tabs.indexOf(tab) + offset + tabs.length) %
+                         tabs.length];
+                nextTab.focus();
+                setDifficulty(nextTab.dataset.difficulty);
+            });
         });
 
         elements.retry.addEventListener("click", loadProblems);

@@ -1,6 +1,12 @@
 (function () {
     "use strict";
 
+    const DIFFICULTY_LABELS = {
+        easy: "简单",
+        medium: "中等",
+        hard: "困难"
+    };
+
     function mapError(error) {
         switch (error.code) {
         case "NOT_AUTHENTICATED":
@@ -38,6 +44,7 @@
             form: document.getElementById("problem-form"),
             problemId: document.getElementById("admin-problem-id"),
             title: document.getElementById("admin-title"),
+            difficulty: document.getElementById("admin-difficulty"),
             description: document.getElementById("admin-description"),
             saveButton: document.getElementById("save-problem-button"),
             deleteButton: document.getElementById("delete-problem-button"),
@@ -97,6 +104,7 @@
             elements.form.hidden = true;
             elements.testcaseEditor.hidden = true;
             elements.title.value = "";
+            elements.difficulty.value = "easy";
             elements.description.value = "";
             elements.problemId.textContent = "";
             setStatus("", null);
@@ -131,8 +139,19 @@
                 title.className = "admin-problem-title";
                 title.textContent = problem.title;
 
+                const difficulty = document.createElement("span");
+                difficulty.className = "difficulty-badge";
+                difficulty.dataset.level = problem.difficulty || "easy";
+                difficulty.textContent =
+                    DIFFICULTY_LABELS[problem.difficulty] || "简单";
+
+                const titleRow = document.createElement("span");
+                titleRow.className = "admin-problem-title-row";
+                titleRow.appendChild(title);
+                titleRow.appendChild(difficulty);
+
                 button.appendChild(id);
-                button.appendChild(title);
+                button.appendChild(titleRow);
                 button.addEventListener("click", function () {
                     selectProblem(problem.id);
                 });
@@ -256,6 +275,7 @@
             try {
                 const problem = await window.OJApi.getProblem(problemId);
                 elements.title.value = problem.title;
+                elements.difficulty.value = problem.difficulty || "easy";
                 elements.description.value = problem.description;
                 elements.problemId.textContent =
                     "题目 #" + String(problem.id).padStart(3, "0");
@@ -272,6 +292,7 @@
             state.mode = "create";
             state.selectedId = null;
             elements.title.value = "";
+            elements.difficulty.value = "easy";
             elements.description.value = "";
             elements.problemId.textContent = "新题目";
             elements.deleteButton.hidden = true;
@@ -289,6 +310,7 @@
             }
 
             const title = elements.title.value.trim();
+            const difficulty = elements.difficulty.value;
             const description = elements.description.value.trim();
             if (!title || !description) {
                 setStatus("题目标题和描述不能为空", "error");
@@ -302,7 +324,8 @@
                 if (state.mode === "create") {
                     const result = await window.OJApi.adminCreateProblem(
                         title,
-                        description
+                        description,
+                        difficulty
                     );
                     state.selectedId = result.id;
                     state.mode = "edit";
@@ -315,7 +338,8 @@
                     await window.OJApi.adminUpdateProblem(
                         state.selectedId,
                         title,
-                        description
+                        description,
+                        difficulty
                     );
                     setStatus("题目保存成功", "success");
                 }

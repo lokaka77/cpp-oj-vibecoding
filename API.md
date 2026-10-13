@@ -270,11 +270,17 @@ Set-Cookie: session_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
   "problems": [
     {
       "id": 1,
-      "title": "A+B Problem"
+      "title": "A+B Problem",
+      "difficulty": "easy"
     }
   ]
 }
 ```
+
+说明：
+
+- `difficulty` 取值：`easy`（简单）、`medium`（中等）、`hard`（困难）。
+- 题目列表页使用该字段做难度筛选。
 
 可能的错误：
 
@@ -330,6 +336,7 @@ Set-Cookie: session_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
   "id": 1,
   "title": "A+B Problem",
   "description": "Given two integers a and b, output a + b.",
+  "difficulty": "easy",
   "samples": [
     {
       "id": 1,
@@ -499,7 +506,8 @@ verdict 说明：
   "problems": [
     {
       "id": 1,
-      "title": "A+B Problem"
+      "title": "A+B Problem",
+      "difficulty": "easy"
     }
   ]
 }
@@ -516,7 +524,8 @@ verdict 说明：
 ```json
 {
   "title": "New Problem",
-  "description": "Problem description"
+  "description": "Problem description",
+  "difficulty": "medium"
 }
 ```
 
@@ -526,13 +535,15 @@ verdict 说明：
 | --- | --- | --- | --- |
 | `title` | string | 是 | 题目标题，非空 |
 | `description` | string | 否 | 题目描述 |
+| `difficulty` | string | 否 | 难度，取值 `easy` / `medium` / `hard`，缺省为 `easy` |
 
 成功响应 `201`：
 
 ```json
 {
   "id": 3,
-  "title": "New Problem"
+  "title": "New Problem",
+  "difficulty": "medium"
 }
 ```
 
@@ -541,7 +552,7 @@ verdict 说明：
 | 状态码 | code | 说明 |
 | --- | --- | --- |
 | `400` | `INVALID_JSON` | JSON 格式错误 |
-| `400` | `VALIDATION_ERROR` | 标题为空 |
+| `400` | `VALIDATION_ERROR` | 标题为空或难度取值非法 |
 | `500` | `INTERNAL_ERROR` | 题目创建失败 |
 
 ### `PUT /api/admin/problems/{id}`
@@ -561,9 +572,18 @@ verdict 说明：
 ```json
 {
   "title": "Updated Problem",
-  "description": "Updated description"
+  "description": "Updated description",
+  "difficulty": "hard"
 }
 ```
+
+参数说明：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `title` | string | 是 | 题目标题，非空 |
+| `description` | string | 否 | 题目描述 |
+| `difficulty` | string | 否 | 难度，取值 `easy` / `medium` / `hard`，缺省为 `easy` |
 
 成功响应 `200`：
 
@@ -578,7 +598,7 @@ verdict 说明：
 | 状态码 | code | 说明 |
 | --- | --- | --- |
 | `400` | `INVALID_JSON` | JSON 格式错误 |
-| `400` | `VALIDATION_ERROR` | 标题为空 |
+| `400` | `VALIDATION_ERROR` | 标题为空或难度取值非法 |
 | `403` | `ADMIN_REQUIRED` | 不是管理员 |
 | `404` | `PROBLEM_NOT_FOUND` | 题目不存在 |
 | `500` | `INTERNAL_ERROR` | 更新失败 |

@@ -16,32 +16,35 @@ TEST(ProblemServiceTest, BuildsEmptyProblemList) {
 
 TEST(ProblemServiceTest, BuildsProblemListItems) {
     std::vector<ProblemSummary> problems;
-    problems.push_back({1, "A+B Problem"});
-    problems.push_back({2, "Sort Array"});
+    problems.push_back({1, "A+B Problem", "easy"});
+    problems.push_back({2, "Sort Array", "hard"});
 
     nlohmann::json result = problem_list_json(problems);
 
     ASSERT_EQ(result["problems"].size(), 2);
     EXPECT_EQ(result["problems"][0]["id"], 1);
     EXPECT_EQ(result["problems"][0]["title"], "A+B Problem");
+    EXPECT_EQ(result["problems"][0]["difficulty"], "easy");
     EXPECT_EQ(result["problems"][1]["id"], 2);
     EXPECT_EQ(result["problems"][1]["title"], "Sort Array");
+    EXPECT_EQ(result["problems"][1]["difficulty"], "hard");
 }
 
 TEST(ProblemServiceTest, BuildsProblemDetailWithoutSamples) {
-    Problem problem{7, "Hello", "Print hello"};
+    Problem problem{7, "Hello", "Print hello", "medium"};
 
     nlohmann::json result = problem_detail_json(problem, {});
 
     EXPECT_EQ(result["id"], 7);
     EXPECT_EQ(result["title"], "Hello");
     EXPECT_EQ(result["description"], "Print hello");
+    EXPECT_EQ(result["difficulty"], "medium");
     EXPECT_TRUE(result["samples"].is_array());
     EXPECT_TRUE(result["samples"].empty());
 }
 
 TEST(ProblemServiceTest, BuildsVisibleSampleTestCases) {
-    Problem problem{7, "Hello", "Print hello"};
+    Problem problem{7, "Hello", "Print hello", "easy"};
     std::vector<TestCase> samples;
     samples.push_back({1, 7, "1 2\n", "3\n", true, 1});
     samples.push_back({2, 7, "10 20\n", "30\n", true, 2});

@@ -39,10 +39,12 @@ public:
                            std::uint64_t& submission_id);
     bool insert_problem(const std::string& title,
                         const std::string& description,
+                        const std::string& difficulty,
                         std::uint64_t& problem_id);
     bool update_problem(std::uint64_t problem_id,
                         const std::string& title,
-                        const std::string& description);
+                        const std::string& description,
+                        const std::string& difficulty);
     bool delete_problem(std::uint64_t problem_id);
     bool replace_test_cases(std::uint64_t problem_id,
                             const std::vector<TestCase>& test_cases,

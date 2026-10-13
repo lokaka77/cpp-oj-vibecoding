@@ -303,19 +303,25 @@ bool Database::list_problems(std::vector<ProblemSummary>& problems) {
     auto* connection = static_cast<MYSQL*>(mysql_);
     StatementPtr statement = make_statement(
         connection,
-        "SELECT id, title FROM problems ORDER BY id ASC");
+        "SELECT id, title, difficulty FROM problems ORDER BY id ASC");
     if (!statement || mysql_stmt_execute(statement.get()) != 0) {
         return false;
     }
 
     unsigned long title_length = 0;
+    unsigned long difficulty_length = 0;
     char title[201]{};
-    MYSQL_BIND result[2]{};
+    char difficulty[16]{};
+    MYSQL_BIND result[3]{};
     result[0].buffer_type = MYSQL_TYPE_LONGLONG;
     result[1].buffer_type = MYSQL_TYPE_STRING;
     result[1].buffer = title;
     result[1].buffer_length = sizeof(title);
     result[1].length = &title_length;
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = difficulty;
+    result[2].buffer_length = sizeof(difficulty);
+    result[2].length = &difficulty_length;
 
     std::uint64_t id = 0;
     result[0].buffer = &id;
@@ -330,6 +336,7 @@ bool Database::list_problems(std::vector<ProblemSummary>& problems) {
         ProblemSummary problem;
         problem.id = id;
         problem.title.assign(title, title_length);
+        problem.difficulty.assign(difficulty, difficulty_length);
         problems.push_back(std::move(problem));
     }
 
@@ -345,7 +352,7 @@ bool Database::find_problem_by_id(std::uint64_t id, Problem& problem) {
     auto* connection = static_cast<MYSQL*>(mysql_);
     StatementPtr statement = make_statement(
         connection,
-        "SELECT id, title, description FROM problems WHERE id = ?");
+        "SELECT id, title, description, difficulty FROM problems WHERE id = ?");
     if (!statement) {
         return false;
     }
@@ -360,10 +367,12 @@ bool Database::find_problem_by_id(std::uint64_t id, Problem& problem) {
 
     unsigned long title_length = 0;
     unsigned long description_length = 0;
+    unsigned long difficulty_length = 0;
     char title[201]{};
+    char difficulty[16]{};
     std::vector<char> description(16 * 1024 * 1024);
 
-    MYSQL_BIND result[3]{};
+    MYSQL_BIND result[4]{};
     result[0].buffer_type = MYSQL_TYPE_LONGLONG;
     result[0].buffer = &problem.id;
 
@@ -376,6 +385,11 @@ bool Database::find_problem_by_id(std::uint64_t id, Problem& problem) {
     result[2].buffer = description.data();
     result[2].buffer_length = description.size();
     result[2].length = &description_length;
+
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = difficulty;
+    result[3].buffer_length = sizeof(difficulty);
+    result[3].length = &difficulty_length;
 
     if (mysql_stmt_bind_result(statement.get(), result) != 0) {
         return false;
@@ -391,6 +405,7 @@ bool Database::find_problem_by_id(std::uint64_t id, Problem& problem) {
 
     problem.title.assign(title, title_length);
     problem.description.assign(description.data(), description_length);
+    problem.difficulty.assign(difficulty, difficulty_length);
     return true;
 }
 
@@ -467,6 +482,7 @@ bool Database::insert_submission(std::uint64_t user_id,
 
 bool Database::insert_problem(const std::string& title,
                               const std::string& description,
+                              const std::string& difficulty,
                               std::uint64_t& problem_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (mysql_ == nullptr) {
@@ -476,52 +492,15 @@ bool Database::insert_problem(const std::string& title,
     auto* connection = static_cast<MYSQL*>(mysql_);
     StatementPtr statement = make_statement(
         connection,
-        "INSERT INTO problems (title, description) VALUES (?, ?)");
+        "INSERT INTO problems (title, description, difficulty) "
+        "VALUES (?, ?, ?)");
     if (!statement) {
         return false;
     }
 
     unsigned long title_length = title.size();
     unsigned long description_length = description.size();
-
-    MYSQL_BIND parameters[2]{};
-    parameters[0].buffer_type = MYSQL_TYPE_STRING;
-    parameters[0].buffer = const_cast<char*>(title.c_str());
-    parameters[0].buffer_length = title.size();
-    parameters[0].length = &title_length;
-
-    parameters[1].buffer_type = MYSQL_TYPE_STRING;
-    parameters[1].buffer = const_cast<char*>(description.c_str());
-    parameters[1].buffer_length = description.size();
-    parameters[1].length = &description_length;
-
-    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
-        mysql_stmt_execute(statement.get()) != 0) {
-        return false;
-    }
-
-    problem_id = mysql_stmt_insert_id(statement.get());
-    return true;
-}
-
-bool Database::update_problem(std::uint64_t problem_id,
-                              const std::string& title,
-                              const std::string& description) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (mysql_ == nullptr) {
-        return false;
-    }
-
-    auto* connection = static_cast<MYSQL*>(mysql_);
-    StatementPtr statement = make_statement(
-        connection,
-        "UPDATE problems SET title = ?, description = ? WHERE id = ?");
-    if (!statement) {
-        return false;
-    }
-
-    unsigned long title_length = title.size();
-    unsigned long description_length = description.size();
+    unsigned long difficulty_length = difficulty.size();
 
     MYSQL_BIND parameters[3]{};
     parameters[0].buffer_type = MYSQL_TYPE_STRING;
@@ -534,8 +513,60 @@ bool Database::update_problem(std::uint64_t problem_id,
     parameters[1].buffer_length = description.size();
     parameters[1].length = &description_length;
 
-    parameters[2].buffer_type = MYSQL_TYPE_LONGLONG;
-    parameters[2].buffer = &problem_id;
+    parameters[2].buffer_type = MYSQL_TYPE_STRING;
+    parameters[2].buffer = const_cast<char*>(difficulty.c_str());
+    parameters[2].buffer_length = difficulty.size();
+    parameters[2].length = &difficulty_length;
+
+    if (mysql_stmt_bind_param(statement.get(), parameters) != 0 ||
+        mysql_stmt_execute(statement.get()) != 0) {
+        return false;
+    }
+
+    problem_id = mysql_stmt_insert_id(statement.get());
+    return true;
+}
+
+bool Database::update_problem(std::uint64_t problem_id,
+                              const std::string& title,
+                              const std::string& description,
+                              const std::string& difficulty) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mysql_ == nullptr) {
+        return false;
+    }
+
+    auto* connection = static_cast<MYSQL*>(mysql_);
+    StatementPtr statement = make_statement(
+        connection,
+        "UPDATE problems SET title = ?, description = ?, difficulty = ? "
+        "WHERE id = ?");
+    if (!statement) {
+        return false;
+    }
+
+    unsigned long title_length = title.size();
+    unsigned long description_length = description.size();
+    unsigned long difficulty_length = difficulty.size();
+
+    MYSQL_BIND parameters[4]{};
+    parameters[0].buffer_type = MYSQL_TYPE_STRING;
+    parameters[0].buffer = const_cast<char*>(title.c_str());
+    parameters[0].buffer_length = title.size();
+    parameters[0].length = &title_length;
+
+    parameters[1].buffer_type = MYSQL_TYPE_STRING;
+    parameters[1].buffer = const_cast<char*>(description.c_str());
+    parameters[1].buffer_length = description.size();
+    parameters[1].length = &description_length;
+
+    parameters[2].buffer_type = MYSQL_TYPE_STRING;
+    parameters[2].buffer = const_cast<char*>(difficulty.c_str());
+    parameters[2].buffer_length = difficulty.size();
+    parameters[2].length = &difficulty_length;
+
+    parameters[3].buffer_type = MYSQL_TYPE_LONGLONG;
+    parameters[3].buffer = &problem_id;
 
     return mysql_stmt_bind_param(statement.get(), parameters) == 0 &&
            mysql_stmt_execute(statement.get()) == 0;

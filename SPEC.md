@@ -307,6 +307,7 @@ cppojvibecoding/
 - `id`：`BIGINT UNSIGNED AUTO_INCREMENT`，主键
 - `title`：`VARCHAR(200) NOT NULL`
 - `description`：`MEDIUMTEXT NOT NULL`
+- `difficulty`：`ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'easy'`，难度分级（简单 / 中等 / 困难）
 - `created_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
 - `updated_at`：`DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
 
@@ -453,12 +454,14 @@ cppojvibecoding/
 - 首屏展示品牌、平台定位与主要入口（开始刷题、登录 / 注册）。
 - 展示判题流程与核心能力说明，视觉风格与登录页、题库页保持一致。
 - 已登录用户显示当前账号信息，管理员额外显示管理入口。
+- 其余页面左上角的品牌标识（C++ CodeHunter）点击后返回落地页。
 
 ### 13.2 题目列表页
 
 - 展示题目编号、标题等核心信息。
 - 点击进入题目详情页。
 - 未登录用户可以浏览题目列表；“已通过”标记仅在登录后展示。
+- 展示难度标签（简单 / 中等 / 困难），支持按难度筛选，并可与标题搜索叠加使用。
 
 ### 13.3 题目详情页
 
@@ -467,6 +470,7 @@ cppojvibecoding/
 - 提供“运行样例”和“提交”两个明确操作。
 - 提交后展示判题结论。
 - 未登录用户可以预览题目描述与样例，此时编辑器区域展示登录入口；运行样例与提交判题需要登录。
+- 题目头部展示难度标签。
 
 ### 13.4 登录注册页
 
@@ -559,7 +563,7 @@ Windows 上资源隔离能力与 Linux 不同，用户代码仍可能尝试制�
 ### 阶段五：验收与部署
 
 - [x] 在 Windows 笔记本本地部署并运行
-- [ ] 准备至少 3 道 C++ 测试题目
+- [x] 准备至少 3 道 C++ 测试题目（已导入 10 道，覆盖简单 / 中等 / 困难）
 - [ ] 准备 20 个测试用户
 - [ ] 执行功能验收
 - [ ] 执行性能验收

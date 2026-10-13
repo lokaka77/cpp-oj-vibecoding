@@ -21,6 +21,11 @@ bool require_admin_request(const httplib::Request& request,
     return require_admin(request, response, database, sessions, admin);
 }
 
+bool is_valid_difficulty(const std::string& difficulty) {
+    return difficulty == "easy" || difficulty == "medium" ||
+           difficulty == "hard";
+}
+
 }  // namespace
 
 void register_admin_problem_routes(httplib::Server& server,
@@ -42,7 +47,9 @@ void register_admin_problem_routes(httplib::Server& server,
 
         nlohmann::json items = nlohmann::json::array();
         for (const ProblemSummary& problem : problems) {
-            items.push_back({{"id", problem.id}, {"title", problem.title}});
+            items.push_back({{"id", problem.id},
+                             {"title", problem.title},
+                             {"difficulty", problem.difficulty}});
         }
         send_json(response, 200, {{"problems", items}});
     });
@@ -62,21 +69,31 @@ void register_admin_problem_routes(httplib::Server& server,
 
         std::string title = body.value("title", "");
         std::string description = body.value("description", "");
+        std::string difficulty = body.value("difficulty", "easy");
         if (title.empty()) {
             send_error(response, 400, "VALIDATION_ERROR",
                        "title is required");
             return;
         }
 
+        if (!is_valid_difficulty(difficulty)) {
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "difficulty must be easy, medium or hard");
+            return;
+        }
+
         std::uint64_t problem_id = 0;
-        if (!database.insert_problem(title, description, problem_id)) {
+        if (!database.insert_problem(title, description, difficulty,
+                                     problem_id)) {
             send_error(response, 500, "INTERNAL_ERROR",
                        "failed to create problem");
             return;
         }
 
         send_json(response, 201,
-                  {{"id", problem_id}, {"title", title}});
+                  {{"id", problem_id},
+                   {"title", title},
+                   {"difficulty", difficulty}});
     });
 
     server.Put(R"(/api/admin/problems/(\d+))",
@@ -94,9 +111,16 @@ void register_admin_problem_routes(httplib::Server& server,
 
         std::string title = body.value("title", "");
         std::string description = body.value("description", "");
+        std::string difficulty = body.value("difficulty", "easy");
         if (title.empty()) {
             send_error(response, 400, "VALIDATION_ERROR",
                        "title is required");
+            return;
+        }
+
+        if (!is_valid_difficulty(difficulty)) {
+            send_error(response, 400, "VALIDATION_ERROR",
+                       "difficulty must be easy, medium or hard");
             return;
         }
 
@@ -108,7 +132,8 @@ void register_admin_problem_routes(httplib::Server& server,
             return;
         }
 
-        if (!database.update_problem(problem_id, title, description)) {
+        if (!database.update_problem(problem_id, title, description,
+                                     difficulty)) {
             send_error(response, 500, "INTERNAL_ERROR",
                        "failed to update problem");
             return;
