@@ -55,12 +55,6 @@ void register_problem_routes(httplib::Server& server,
     server.Get(R"(/api/problems/(\d+))",
                [&](const httplib::Request& request,
                    httplib::Response& response) {
-        AuthUser user;
-        if (!require_authenticated(request, response, database, sessions,
-                                   user)) {
-            return;
-        }
-
         std::uint64_t problem_id = std::stoull(request.matches[1].str());
 
         Problem problem;

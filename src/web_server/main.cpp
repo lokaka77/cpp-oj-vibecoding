@@ -26,6 +26,12 @@ void run_http_server(const ServerConfig& config) {
 
     server.set_mount_point("/", config.web_root);
 
+    // 本地教学部署：避免浏览器重复使用旧版前端资源。
+    server.set_post_routing_handler(
+        [](const httplib::Request&, httplib::Response& response) {
+            response.set_header("Cache-Control", "no-cache");
+        });
+
     server.set_logger([](const httplib::Request& request,
                          const httplib::Response& response) {
         log_info(request.method + " " + request.path + " -> " +

@@ -131,7 +131,7 @@ try {
     Assert-Status 'GET /api/problems public' $status '200'
 
     $status = curl.exe -s -o $responseFile -w '%{http_code}' http://127.0.0.1:8080/api/problems/1
-    Assert-Status 'GET /api/problems/1 unauthenticated' $status '401'
+    Assert-Status 'GET /api/problems/1 public preview' $status '200'
 
     Write-JsonFile $userFile @{
         username = $user
@@ -368,7 +368,7 @@ curl.exe -b cookies.txt -X POST `
 | --- | --- |
 | 健康检查 | `200` |
 | 题目列表公开访问 | `200` |
-| 未登录访问题目详情 | `401` |
+| 未登录访问题目详情（预览） | `200` |
 | 注册用户 | `201` |
 | 普通用户登录 | `200` |
 | 当前用户 | `200` |

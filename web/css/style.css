@@ -1071,6 +1071,40 @@ a:focus-visible {
     font-size: 11px;
 }
 
+.workspace-guest {
+    display: grid;
+    justify-items: start;
+    gap: 14px;
+    padding: 28px 24px 32px;
+}
+
+.workspace-guest .eyebrow {
+    margin-bottom: 0;
+}
+
+.workspace-guest h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.workspace-guest-copy {
+    max-width: 460px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.workspace-guest-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-height: 44px;
+    padding: 0 22px;
+    text-decoration: none;
+}
+
 .editor-shell {
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);

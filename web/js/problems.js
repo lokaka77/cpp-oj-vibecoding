@@ -22,6 +22,7 @@
             userRole: document.getElementById("user-role"),
             adminNav: document.getElementById("admin-nav-link"),
             adminUsersNav: document.getElementById("admin-users-nav-link"),
+            loginLink: document.getElementById("login-link"),
             logoutButton: document.getElementById("logout-button"),
             search: document.getElementById("problem-search"),
             count: document.getElementById("problem-count"),
@@ -179,10 +180,12 @@
             }
         }
 
-        async function checkAuthentication() {
+        async function resolveUser() {
             try {
                 const user = await window.OJApi.me();
                 elements.userName.textContent = user.username;
+                elements.userName.hidden = false;
+                elements.logoutButton.hidden = false;
 
                 if (user.role === "admin") {
                     elements.userRole.textContent = "管理员";
@@ -191,10 +194,12 @@
                     elements.adminUsersNav.hidden = false;
                 }
 
-                return true;
+                return user;
             } catch (error) {
-                window.location.replace("./login.html");
-                return false;
+                if (elements.loginLink) {
+                    elements.loginLink.hidden = false;
+                }
+                return null;
             }
         }
 
@@ -223,11 +228,11 @@
             }
         });
 
-        checkAuthentication().then(async function (authenticated) {
-            if (authenticated) {
+        resolveUser().then(async function (user) {
+            if (user) {
                 await loadSolvedProblems();
-                loadProblems();
             }
+            loadProblems();
         });
     }
 

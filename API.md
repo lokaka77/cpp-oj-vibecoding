@@ -315,7 +315,7 @@ Set-Cookie: session_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
 
 作用：获取题目详情和普通用户可见的样例测试点。
 
-访问权限：需要登录。
+访问权限：公开，未登录用户可以预览。
 
 路径参数：
 
@@ -345,12 +345,12 @@ Set-Cookie: session_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
 
 - 只返回 `is_sample = 1` 的测试点。
 - 隐藏测试点不会返回给普通用户。
+- 未登录用户可以查看题目描述与样例，但不能运行样例或提交判题。
 
 可能的错误：
 
 | 状态码 | code | 说明 |
 | --- | --- | --- |
-| `401` | `NOT_AUTHENTICATED` | 未登录 |
 | `404` | `PROBLEM_NOT_FOUND` | 题目不存在 |
 | `500` | `INTERNAL_ERROR` | 数据读取失败 |
 

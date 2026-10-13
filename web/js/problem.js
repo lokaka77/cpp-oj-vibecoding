@@ -41,6 +41,7 @@
             userRole: document.getElementById("user-role"),
             adminNav: document.getElementById("admin-nav-link"),
             adminUsersNav: document.getElementById("admin-users-nav-link"),
+            loginLink: document.getElementById("login-link"),
             logoutButton: document.getElementById("logout-button"),
             meta: document.getElementById("problem-meta"),
             loading: document.getElementById("problem-loading"),
@@ -57,7 +58,9 @@
             submitButton: document.getElementById("submit-button"),
             resultPanel: document.getElementById("result-panel"),
             resultVerdict: document.getElementById("result-verdict"),
-            resultMessage: document.getElementById("result-message")
+            resultMessage: document.getElementById("result-message"),
+            workspaceEditor: document.getElementById("workspace-editor"),
+            workspaceGuest: document.getElementById("workspace-guest")
         };
 
         const params = new URLSearchParams(window.location.search);
@@ -203,10 +206,12 @@
             }
         }
 
-        async function checkAuthentication() {
+        async function resolveUser() {
             try {
                 const user = await window.OJApi.me();
                 elements.userName.textContent = user.username;
+                elements.userName.hidden = false;
+                elements.logoutButton.hidden = false;
                 state.userId = user.id;
                 state.draftKey =
                     "codehunter:user:" + state.userId +
@@ -230,15 +235,28 @@
                     elements.adminUsersNav.hidden = false;
                 }
 
-                return true;
+                return user;
             } catch (error) {
-                window.location.replace("./login.html");
-                return false;
+                if (elements.loginLink) {
+                    elements.loginLink.hidden = false;
+                }
+                if (elements.workspaceEditor) {
+                    elements.workspaceEditor.hidden = true;
+                }
+                if (elements.workspaceGuest) {
+                    elements.workspaceGuest.hidden = false;
+                }
+                return null;
             }
         }
 
         async function runSample() {
             if (state.busy) {
+                return;
+            }
+
+            if (!state.userId) {
+                showResult("ERROR", "请先登录后再运行代码", "error");
                 return;
             }
 
@@ -269,6 +287,11 @@
 
         async function submitCode() {
             if (state.busy) {
+                return;
+            }
+
+            if (!state.userId) {
+                showResult("ERROR", "请先登录后再提交代码", "error");
                 return;
             }
 
@@ -353,11 +376,8 @@
             }
         });
 
-        checkAuthentication().then(function (authenticated) {
-            if (authenticated) {
-                loadProblem();
-            }
-        });
+        loadProblem();
+        resolveUser();
     }
 
     document.addEventListener("DOMContentLoaded", initProblemPage);
