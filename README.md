@@ -75,7 +75,15 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_problems.ps1
 
 脚本以题目标题为准：已存在则更新描述与难度并替换测试用例，不存在则新建。当前包含 10 道题（简单 4 / 中等 3 / 困难 3），每题 5 组测试用例（2 组样例 + 3 组隐藏）。
 
-### 6. 访问地址
+### 6. 准备测试用户
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\seed_users.ps1
+```
+
+批量创建 `student01` ~ `student20`（初始密码 `student123`）。脚本通过注册接口创建账号，密码走真实的 Argon2id 哈希流程；已存在的用户会自动跳过。管理员可在"用户"页面查看或删除这些账号。
+
+### 7. 访问地址
 
 | 用途 | 地址 |
 | --- | --- |
@@ -85,7 +93,7 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_problems.ps1
 
 预置管理员：`admin / admin123`。
 
-### 7. 运行测试
+### 8. 运行测试
 
 ```powershell
 & .\.tools\w64devkit\w64devkit\bin\ctest.exe --test-dir build --output-on-failure
@@ -94,6 +102,22 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_problems.ps1
 - 单元测试：`oj_tests`
 - 数据库集成测试：`database_integration_tests`
 - 接口级回归：`基于curl命令的接口自动化测试.md`
+
+### 9. 前端端到端测试（Playwright）
+
+前置条件：服务已启动（MySQL、web_server、judge_worker），题库与测试用户已导入。
+
+```powershell
+$env:PATH = "$PWD\.tools\node;$env:PATH"
+Set-Location tests\e2e
+npm test              # 无头运行，复用系统 Edge
+npm run test:headed   # 需要观察浏览器操作时
+```
+
+- Node 使用 `.tools\node` 下的便携版，Playwright 测试包位于 `tests/e2e/node_modules`，两者都不提交到 Git。
+- 用例位于 `tests/e2e/specs/`：`guest.spec.js`（游客预览、难度筛选、返回落地页）、`student.spec.js`（登录、运行样例、提交判题、退出）、`admin.spec.js`（管理入口、用户目录、题目增删）。
+- 首次安装依赖：在 `tests/e2e` 目录执行 `npm install`（已配置跳过浏览器内核下载，直接使用系统 Edge）。
+- 运行后生成 HTML 报告：`tests/e2e/report/index.html`。
 
 ## 部署验收记录（2026-10-13）
 
@@ -113,3 +137,4 @@ powershell -ExecutionPolicy Bypass -File scripts\seed_problems.ps1
 - `API.md`：接口说明
 - `DEPENDENCIES.md`：依赖清单与安装方式
 - `基于curl命令的接口自动化测试.md`：接口回归脚本
+- `web自动化测试流程.md`：自动化测试分层、用例映射与执行流程

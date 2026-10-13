@@ -3,3 +3,8 @@
 
 # CMake build output
 build/
+
+# Playwright 端到端测试产物
+tests/e2e/node_modules/
+tests/e2e/report/
+tests/e2e/test-results/

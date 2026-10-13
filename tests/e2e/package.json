@@ -1,0 +1,14 @@
+{
+  "name": "codehunter-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeHunter 端到端验收测试（Playwright，复用系统 Edge）",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0"
+  }
+}
