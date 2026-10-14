@@ -113,3 +113,4 @@ powershell -ExecutionPolicy Bypass -File scripts\start_local.ps1            # �
 | [DEPENDENCIES.md](DEPENDENCIES.md) | 依赖清单（版本与来源） |
 | [web自动化测试流程.md](web自动化测试流程.md) | 测试分层、用例映射、执行流程、验收记录与缺陷记录 |
 | [基于curl命令的接口自动化测试.md](基于curl命令的接口自动化测试.md) | 接口回归脚本与分步 curl 示例 |
+| [vibecoding流程指导书.md](vibecoding流程指导书.md) | 通用方法论：AI 辅助开发的六阶段流程、协作 SOP、质量门禁与真实案例 |

@@ -8,3 +8,6 @@ build/
 tests/e2e/node_modules/
 tests/e2e/report/
 tests/e2e/test-results/
+
+# 个人求职材料（不提交）
+简历项目描述.txt
