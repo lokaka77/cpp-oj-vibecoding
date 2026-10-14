@@ -228,66 +228,80 @@
 ```text
 cppojvibecoding/
 ├── .gitignore
-├── README.md
-├── SPEC.md
-├── DEPENDENCIES.md
+├── README.md                 # 项目介绍
+├── DEPLOYMENT.md             # 部署与运维手册
+├── SPEC.md                   # 需求、架构与验收标准
+├── API.md                    # 接口文档
+├── DEPENDENCIES.md           # 依赖清单
+├── web自动化测试流程.md        # 自动化测试流程
+├── 基于curl命令的接口自动化测试.md
 ├── CMakeLists.txt
 ├── src/
 │   ├── common/
-│   │   ├── config.h
-│   │   ├── database.h
+│   │   ├── config.h / config.cc
+│   │   ├── database.h / database.cc
+│   │   ├── password.h / password.cc
 │   │   ├── json_utils.h
 │   │   └── logging.h
 │   ├── web_server/
-│   │   ├── main.cpp
-│   │   ├── http_service.h
-│   │   ├── auth_service.h
-│   │   ├── problem_service.h
-│   │   └── admin_service.h
+│   │   ├── main.cpp / http_service.h
+│   │   ├── auth_service.h / auth_service.cc
+│   │   ├── auth_middleware.h / auth_middleware.cc
+│   │   ├── problem_service.h / problem_service.cc
+│   │   ├── admin_service.h / admin_service.cc
+│   │   ├── session.h / session.cc
+│   │   └── rate_limiter.h / rate_limiter.cc
 │   └── judge/
 │       ├── main.cpp
-│       ├── judge_worker.h
-│       ├── compiler.h
-│       ├── runner.h
+│       ├── judge_worker.h / judge_worker.cc
+│       ├── compiler.h / compiler.cc
+│       ├── sample_runner.h / sample_runner.cc
+│       ├── process_runner.h / process_runner.cc
+│       ├── output_comparer.h / output_comparer.cc
 │       └── process_guard.h
-├── include/
-│   └── oj/
-│       ├── api.h
-│       ├── models.h
-│       └── verdict.h
+├── include/oj/
+│   ├── api.h
+│   ├── models.h
+│   └── verdict.h
 ├── web/
-│   ├── index.html
+│   ├── index.html            # 落地页
 │   ├── login.html
-│   ├── problems.html
-│   ├── problem.html
-│   ├── admin.html
+│   ├── problems.html         # 题库（难度筛选）
+│   ├── problem.html          # 题目详情 + 在线编辑器
+│   ├── admin.html            # 题目管理
+│   ├── admin-users.html      # 用户管理
 │   ├── css/
 │   │   └── style.css
 │   └── js/
-│       ├── api.js
-│       ├── auth.js
-│       ├── problems.js
-│       ├── problem.js
-│       └── admin.js
+│       ├── api.js / auth.js / landing.js
+│       ├── problems.js / problem.js
+│       ├── admin.js / admin-users.js
+│       └── tech-background.js
 ├── scripts/
-│   ├── install_dependencies.ps1
-│   └── init_db.sql
+│   ├── install_dependencies.ps1     # 依赖安装
+│   ├── init_db.sql / migrate_add_difficulty.sql
+│   ├── start_local.ps1 / stop_local.ps1
+│   ├── seed_problems.ps1 / seed_users.ps1
+│   ├── allow_lan_access.ps1         # 局域网放行
+│   ├── harden_judge.ps1             # 判题网络加固
+│   └── perf_test.ps1 / security_test.ps1
 ├── tests/
-│   ├── unit/
-│   └── integration/
+│   ├── unit/                        # GoogleTest 单元测试
+│   ├── integration/                 # 数据库集成测试
+│   └── e2e/                         # Playwright 端到端测试
 ├── build/
 └── .tools/
 ```
 
 说明：
 
-- `src/common`：数据库访问、配置、JSON 和日志等公共模块。
+- `src/common`：数据库访问、配置、口令哈希、JSON 和日志等公共模块。
 - `src/web_server`：HTTP 服务入口和认证、题目、管理端 API。
 - `src/judge`：独立判题服务，负责编译、运行、资源限制和结果回写。
 - `include/oj`：供各模块共享的数据模型、接口定义和判题结论定义。
 - `web`：原生 HTML、CSS、JavaScript 前端页面。
-- `scripts`：依赖安装和数据库初始化脚本。
-- `tests`：单元测试与集成测试。
+- `scripts`：依赖安装、建库、启停、种子数据、局域网放行、判题加固、性能与安全验收脚本。
+- `tests`：单元测试、数据库集成测试与 Playwright 端到端测试。
 - `build`：CMake 生成的构建产物，应加入 `.gitignore`。
 - `.tools`：本地便携工具链，已加入 `.gitignore`。
 
@@ -573,7 +587,7 @@ Windows 上资源隔离能力与 Linux 不同，用户代码仍可能尝试制�
 
 ## 16. 验收标准
 
-页面级功能验收由 `tests/e2e` 下的 Playwright 用例自动执行（复用系统 Edge，运行方式见 README）：
+页面级功能验收由 `tests/e2e` 下的 Playwright 用例自动执行（复用系统 Edge，运行方式见 `DEPLOYMENT.md` 第 8 节）：
 
 ```powershell
 Set-Location tests\e2e

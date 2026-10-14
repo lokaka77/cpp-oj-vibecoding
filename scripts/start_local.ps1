@@ -1,3 +1,7 @@
+param(
+    [switch]$DatabaseOnly
+)
+
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path $PSScriptRoot -Parent
@@ -51,6 +55,12 @@ if (-not (Get-Process -Name mysqld -ErrorAction SilentlyContinue)) {
 
 if (-not (Wait-ForTcpPort -Port 3306 -TimeoutSeconds 20)) {
     throw 'MySQL did not start on port 3306.'
+}
+
+if ($DatabaseOnly) {
+    Write-Host 'MySQL started (database-only mode):'
+    Write-Host '  MySQL : 127.0.0.1:3306'
+    exit 0
 }
 
 if (-not (Get-Process -Name web_server -ErrorAction SilentlyContinue)) {

@@ -1,164 +1,59 @@
-# OJ 项目依赖清单与安装命令
+# CodeHunter 依赖清单
 
-本文根据 `SPEC.md` 的技术栈，列出在 Windows 笔记本上开发本项目所需的依赖。
+本项目采用**便携依赖**方案：所有第三方组件放在 `.tools\`，不提交 Git，换机器可整体拷贝。
+安装步骤见 [DEPLOYMENT.md](DEPLOYMENT.md) 第 2 节；本文只列版本、来源与用途。
 
 ## 1. 依赖总览
 
-| 依赖 | 用途 | 是否必需 |
-| --- | --- | --- |
-| MinGW-w64 `g++` | 编译用户提交的 C++17 代码 | 必需 |
-| CMake | 生成项目构建文件 | 必需 |
-| Ninja | CMake 构建工具 | 必需 |
-| Git | 拉取 vcpkg 和依赖 | 必需 |
-| vcpkg | 管理 C++ 第三方库 | 必需 |
-| cpp-httplib | 后端 HTTP 服务 | 必需 |
-| nlohmann/json | 后端 JSON 请求与响应处理 | 必需 |
-| yaml-cpp | 解析 config.yaml 配置 | 必需 |
-| GoogleTest | C++ 单元测试框架 | 必需 |
-| libsodium | 用户密码安全哈希 | 必需 |
-| MySQL Server | 数据持久化 | 必需 |
-| MySQL 客户端库 | 后端连接 MySQL | 必需 |
+| 组件 | 版本 | 来源 | 用途 | 必需 |
+| --- | --- | --- | --- | --- |
+| w64devkit | 2.10.0 | GitHub `skeeto/w64devkit` releases | 提供 `g++`（C++17）、CMake、Ninja | 是 |
+| vcpkg | 最新主线（clone） | GitHub `microsoft/vcpkg` | 安装下列 C++ 静态库 | 是 |
+| cpp-httplib | vcpkg 版本 | vcpkg `cpp-httplib:x64-mingw-static` | HTTP 服务与路由 | 是 |
+| nlohmann-json | vcpkg 版本 | vcpkg `nlohmann-json:x64-mingw-static` | JSON 序列化 | 是 |
+| libsodium | vcpkg 版本 | vcpkg `libsodium:x64-mingw-static` | 口令哈希（Argon2id） | 是 |
+| libmariadb | vcpkg 版本 | vcpkg `libmariadb:x64-mingw-static` | 连接 MySQL 服务端 | 是 |
+| yaml-cpp | vcpkg 版本 | vcpkg `yaml-cpp:x64-mingw-static` | 解析 `config.yaml` | 是 |
+| GoogleTest | vcpkg 版本 | vcpkg `gtest:x64-mingw-static` | 单元测试与集成测试 | 是（测试） |
+| MySQL Community Server | 8.0.46（no-install ZIP） | dev.mysql.com | 数据持久化 | 是 |
+| Node.js | v24.21.0（便携 ZIP） | nodejs.org | 运行 Playwright 端到端测试 | 否（仅测试） |
+| Playwright | 随 `npm install` 安装 | npm registry | 浏览器端到端测试（复用系统 Edge，不下载内核） | 否（仅测试） |
 
-前端使用原生 HTML、CSS、JavaScript，不需要 npm 或其他前端构建工具。
-
-## 2. 推荐安装方案
-
-### 2.1 安装 MSYS2
-
-在 PowerShell 中执行：
+## 2. 一键安装
 
 ```powershell
-winget install --id=MSYS2.MSYS2 -e
+powershell -ExecutionPolicy Bypass -File scripts\install_dependencies.ps1
 ```
 
-安装完成后，从开始菜单打开 `MSYS2 UCRT64`，执行：
+脚本行为：
 
-```bash
-pacman -Syu
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf git
-```
+1. 下载并解压 w64devkit 2.10.0 到 `.tools\w64devkit`；
+2. 克隆并引导 vcpkg 到 `.tools\vcpkg`；
+3. 安装 6 个静态库（cpp-httplib、nlohmann-json、libsodium、libmariadb、yaml-cpp、gtest）；
+4. 下载 MySQL 8.0.46 便携版到 `.tools\mysql`，生成 `my.ini`，初始化数据目录 `.tools\mysql-data`。
 
-验证安装：
+脚本**不含** Node 与 Playwright（只有跑端到端测试才需要），安装命令见 [DEPLOYMENT.md](DEPLOYMENT.md) 第 2.2 节。
 
-```bash
-g++ --version
-cmake --version
-ninja --version
-git --version
-```
-
-### 2.2 安装 vcpkg
-
-在 PowerShell 中执行：
+## 3. 安装后自检
 
 ```powershell
-git clone https://github.com/microsoft/vcpkg.git C:\dev\vcpkg
-cd C:\dev\vcpkg
-.\bootstrap-vcpkg.bat
+& .\.tools\w64devkit\w64devkit\bin\g++.exe --version
+& .\.tools\w64devkit\w64devkit\bin\cmake.exe --version
+& .\.tools\w64devkit\w64devkit\bin\ninja.exe --version
+& .\.tools\vcpkg\vcpkg.exe list | Select-String 'x64-mingw-static'
+& .\.tools\mysql\bin\mysqld.exe --version
+& .\.tools\node\node.exe --version          # 可选：已装 Node 时
 ```
 
-### 2.3 安装 C++ 第三方库
+## 4. 备选安装方式（不使用 .tools 时）
 
-以下命令使用 MinGW 静态链接 triplet：
+如果偏好系统级安装（会让项目依赖机器环境，不推荐用于本项目的复现）：
 
-```powershell
-cd C:\dev\vcpkg
-.\vcpkg install cpp-httplib:x64-mingw-static nlohmann-json:x64-mingw-static yaml-cpp:x64-mingw-static gtest:x64-mingw-static libsodium:x64-mingw-static libmariadb:x64-mingw-static
-```
+| 组件 | 安装方式 |
+| --- | --- |
+| 编译工具链 | MSYS2（`pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja`）或 winget |
+| C++ 库 | vcpkg（`vcpkg install cpp-httplib nlohmann-json libsodium libmariadb yaml-cpp gtest`），或 MSYS2 对应 `mingw-w64-x86_64-*` 包 |
+| MySQL | `winget install --id=Oracle.MySQL -e`，或 MySQL Installer |
+| Node.js | `winget install --id=OpenJS.NodeJS.LTS -e`，或官网安装包 |
 
-说明：
-
-- `cpp-httplib` 是文档指定的 HTTP 服务库。
-- `nlohmann/json` 用于统一 JSON 响应。
-- `yaml-cpp` 用于解析 `config.yaml`。
-- `gtest` 用于单元测试。
-- `libsodium` 提供 Argon2 等安全密码哈希能力。
-- `libmariadb` 使用 MySQL 协议连接 MySQL 服务端，服务端仍安装 MySQL。
-
-验证依赖：
-
-```powershell
-.\vcpkg list
-```
-
-### 2.4 安装 MySQL Server
-
-在 PowerShell 中安装：
-
-```powershell
-winget search MySQL
-winget install --id=Oracle.MySQL -e
-```
-
-如果 winget 中找不到对应包，也可以从 MySQL 官网下载 MySQL Installer：
-
-```text
-https://dev.mysql.com/downloads/installer/
-```
-
-安装完成后，将 MySQL 的 `bin` 目录加入 `PATH`，然后验证：
-
-```powershell
-mysql --version
-```
-
-后续需要创建数据库和业务账号，例如：
-
-```sql
-CREATE DATABASE oj CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-账号和建表脚本在实现阶段再补充，不在这里安装。
-
-## 3. 备选方案
-
-### 3.1 使用 Chocolatey
-
-如果机器已经安装 Chocolatey，可以合并安装部分工具：
-
-```powershell
-choco install git cmake ninja mysql -y
-```
-
-但 `g++` 和 `cpp-httplib` 仍建议通过 MSYS2 与 vcpkg 安装，以确保 C++17 和静态链接配置稳定。
-
-### 3.2 使用 MySQL Connector/C++
-
-如果希望使用 Oracle 官方 MySQL C++ 连接器，而不是 `libmariadb`，可以使用 vcpkg：
-
-```powershell
-.\vcpkg install mysql-connector-cpp:x64-windows-static
-```
-
-该方式更偏向 MSVC 工具链。若统一使用 MinGW，推荐继续使用 `libmariadb`，它同样兼容 MySQL 服务端。
-
-## 4. 安装后自检清单
-
-按顺序执行以下命令，确认关键依赖已就绪：
-
-```bash
-g++ --version
-cmake --version
-ninja --version
-git --version
-```
-
-```powershell
-mysql --version
-```
-
-```powershell
-cd C:\dev\vcpkg
-.\vcpkg list
-```
-
-应能看到：
-
-- `cpp-httplib`
-- `nlohmann-json`
-- `yaml-cpp`
-- `gtest`
-- `libsodium`
-- `libmariadb`
-
-以上依赖安装完成后，即可进入项目脚手架、MySQL 建表和代码实现阶段。
+此方式下构建时需自行指定 `CMAKE_TOOLCHAIN_FILE`（vcpkg）与编译器路径。

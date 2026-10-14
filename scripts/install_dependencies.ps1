@@ -45,7 +45,14 @@ if (-not (Test-Path (Join-Path $vcpkgDir 'vcpkg.exe'))) {
     & (Join-Path $vcpkgDir 'bootstrap-vcpkg.bat') -disableMetrics
 }
 
-& (Join-Path $vcpkgDir 'vcpkg.exe') install cpp-httplib:x64-mingw-static nlohmann-json:x64-mingw-static libsodium:x64-mingw-static libmariadb:x64-mingw-static
+# libsodium 提供 Argon2id 口令哈希；gtest 与 yaml-cpp 分别供单元测试、配置解析使用。
+& (Join-Path $vcpkgDir 'vcpkg.exe') install `
+    cpp-httplib:x64-mingw-static `
+    nlohmann-json:x64-mingw-static `
+    libsodium:x64-mingw-static `
+    libmariadb:x64-mingw-static `
+    yaml-cpp:x64-mingw-static `
+    gtest:x64-mingw-static
 
 # MySQL Community Server no-install archive.
 $mysqlArchive = Join-Path $downloadDir 'mysql-8.0.46-winx64.zip'
